@@ -1,0 +1,1 @@
+﻿//! WebSocket connection types.

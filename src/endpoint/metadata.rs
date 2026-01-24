@@ -1,0 +1,1 @@
+﻿//! Endpoint metadata definitions.

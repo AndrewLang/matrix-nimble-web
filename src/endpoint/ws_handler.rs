@@ -1,0 +1,1 @@
+﻿//! WebSocket endpoint handler traits.

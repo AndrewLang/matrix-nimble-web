@@ -1,0 +1,1 @@
+﻿//! HTTP endpoint handler traits.
