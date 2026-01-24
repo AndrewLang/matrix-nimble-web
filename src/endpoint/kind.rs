@@ -1,1 +1,1 @@
-﻿//! Endpoint kind categorization.
+﻿

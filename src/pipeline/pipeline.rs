@@ -1,1 +1,1 @@
-﻿//! Pipeline composition structures.
+﻿

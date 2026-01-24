@@ -1,1 +1,1 @@
-﻿//! Error response helpers.
+﻿

@@ -1,1 +1,1 @@
-﻿//! Endpoint marker types.
+﻿

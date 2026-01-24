@@ -1,1 +1,1 @@
-﻿//! CRUD repository traits.
+﻿

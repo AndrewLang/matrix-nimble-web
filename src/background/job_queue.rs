@@ -1,1 +1,1 @@
-﻿//! Background job queue types.
+﻿

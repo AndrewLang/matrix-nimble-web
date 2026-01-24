@@ -1,1 +1,1 @@
-﻿//! Entity registry.
+﻿

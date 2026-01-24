@@ -1,1 +1,1 @@
-﻿//! Pipeline continuation handle.
+﻿

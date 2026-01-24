@@ -1,1 +1,1 @@
-﻿//! HTTP header collection.
+﻿

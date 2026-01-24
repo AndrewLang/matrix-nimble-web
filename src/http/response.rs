@@ -1,1 +1,1 @@
-﻿//! HTTP response types.
+﻿

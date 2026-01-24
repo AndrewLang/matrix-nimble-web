@@ -1,1 +1,1 @@
-﻿//! Endpoint filter traits.
+﻿

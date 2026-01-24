@@ -1,1 +1,1 @@
-﻿//! Entity base definitions.
+﻿

@@ -1,1 +1,1 @@
-﻿//! Application root type.
+﻿

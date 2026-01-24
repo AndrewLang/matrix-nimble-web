@@ -1,1 +1,1 @@
-﻿//! CRUD query definitions.
+﻿

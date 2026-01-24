@@ -1,1 +1,1 @@
-﻿//! Text response helpers.
+﻿

@@ -1,1 +1,1 @@
-﻿//! Controller registry.
+﻿

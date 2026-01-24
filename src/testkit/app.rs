@@ -1,1 +1,1 @@
-﻿//! Test application scaffolding.
+﻿

@@ -1,1 +1,1 @@
-﻿//! Background hosted service traits.
+﻿

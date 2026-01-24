@@ -1,1 +1,1 @@
-﻿//! Entity metadata.
+﻿
