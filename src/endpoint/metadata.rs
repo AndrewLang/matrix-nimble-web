@@ -4,6 +4,7 @@ pub struct EndpointMetadata {
     route_pattern: String,
     name: Option<String>,
     tags: Vec<String>,
+    policy: Option<crate::security::policy::Policy>,
 }
 
 impl EndpointMetadata {
@@ -13,6 +14,7 @@ impl EndpointMetadata {
             route_pattern: route_pattern.to_string(),
             name: None,
             tags: Vec::new(),
+            policy: None,
         }
     }
 
@@ -30,6 +32,15 @@ impl EndpointMetadata {
 
     pub fn tags(&self) -> &[String] {
         &self.tags
+    }
+
+    pub fn require_policy(mut self, policy: crate::security::policy::Policy) -> Self {
+        self.policy = Some(policy);
+        self
+    }
+
+    pub fn policy(&self) -> Option<&crate::security::policy::Policy> {
+        self.policy.as_ref()
     }
 
     pub fn with_name(mut self, name: &str) -> Self {

@@ -5,6 +5,8 @@ use crate::pipeline::middleware::Middleware;
 use crate::pipeline::pipeline::Pipeline;
 use crate::routing::router::Router;
 use crate::routing::simple_router::SimpleRouter;
+use crate::security::auth::AuthenticationMiddleware;
+use crate::security::policy::AuthorizationMiddleware;
 
 pub struct AppBuilder {
     pipeline: Pipeline,
@@ -40,6 +42,16 @@ impl AppBuilder {
             self.controller_registry.add_route(route, endpoint);
         }
 
+        self
+    }
+
+    pub fn use_authentication(&mut self) -> &mut Self {
+        self.pipeline.add(AuthenticationMiddleware::new());
+        self
+    }
+
+    pub fn use_authorization(&mut self) -> &mut Self {
+        self.pipeline.add(AuthorizationMiddleware::new());
         self
     }
 

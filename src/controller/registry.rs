@@ -4,6 +4,7 @@ use crate::endpoint::http_handler::HttpHandler;
 use crate::endpoint::kind::{EndpointKind, HttpEndpointHandler};
 use crate::endpoint::metadata::EndpointMetadata;
 use crate::routing::route::Route;
+use crate::security::policy::Policy;
 
 #[derive(Default)]
 pub struct ControllerRegistry {
@@ -26,6 +27,19 @@ impl ControllerRegistry {
     {
         let route = Route::new(method, path);
         let metadata = EndpointMetadata::new(method, path);
+        let endpoint = Endpoint::new(
+            EndpointKind::Http(HttpEndpointHandler::new(handler)),
+            metadata,
+        );
+        self.add_route(route, endpoint);
+    }
+
+    pub fn add_with_policy<H>(&mut self, method: &str, path: &str, handler: H, policy: Policy)
+    where
+        H: HttpHandler + Send + Sync + 'static,
+    {
+        let route = Route::new(method, path);
+        let metadata = EndpointMetadata::new(method, path).require_policy(policy);
         let endpoint = Endpoint::new(
             EndpointKind::Http(HttpEndpointHandler::new(handler)),
             metadata,

@@ -41,6 +41,10 @@ impl HttpContext {
         &self.request
     }
 
+    pub fn request_mut(&mut self) -> &mut HttpRequest {
+        &mut self.request
+    }
+
     pub fn response(&self) -> &HttpResponse {
         &self.response
     }
