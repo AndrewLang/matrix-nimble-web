@@ -6,12 +6,12 @@ use nimble_web::endpoint::kind::{EndpointKind, HttpEndpointHandler};
 use nimble_web::endpoint::metadata::EndpointMetadata;
 use nimble_web::http::request_body::RequestBody;
 use nimble_web::http::response_body::ResponseBody;
-use nimble_web::validation::ValidationMiddleware;
 use nimble_web::pipeline::pipeline::PipelineError;
 use nimble_web::result::into_response::ResponseValue;
 use nimble_web::routing::route::Route;
-use nimble_web::testkit::request::HttpRequestBuilder;
 use nimble_web::testkit::app::TestApp;
+use nimble_web::testkit::request::HttpRequestBuilder;
+use nimble_web::validation::ValidationMiddleware;
 use nimble_web::validation::{ContextValidator, ValidationError};
 
 #[derive(Debug, Clone)]
@@ -125,7 +125,9 @@ fn validation_passes() {
 
 #[test]
 fn validation_fails() {
-    let request = HttpRequestBuilder::post("/validate").body("invalid").build();
+    let request = HttpRequestBuilder::post("/validate")
+        .body("invalid")
+        .build();
     let response = TestApp::new()
         .use_middleware(ValidationMiddleware::new())
         .add_controller::<InvalidController>()

@@ -12,6 +12,29 @@ pub struct ControllerRegistry {
     endpoints: Vec<Endpoint>,
 }
 
+pub struct ControllerActionBuilder<'a> {
+    registry: &'a mut ControllerRegistry,
+    method: &'static str,
+    path: String,
+    endpoint: Endpoint,
+}
+
+impl<'a> ControllerActionBuilder<'a> {
+    pub fn validate<T>(mut self, validator: T) -> Self
+    where
+        T: crate::validation::AnyValidator + 'static,
+    {
+        let metadata = self.endpoint.metadata().clone().add_validator(validator);
+        self.endpoint = Endpoint::new(self.endpoint.kind().clone(), metadata);
+        self
+    }
+
+    pub fn register(self) {
+        let route = Route::new(self.method, &self.path);
+        self.registry.add_route(route, self.endpoint);
+    }
+}
+
 impl ControllerRegistry {
     pub fn new() -> Self {
         Self::default()
@@ -32,6 +55,42 @@ impl ControllerRegistry {
             metadata,
         );
         self.add_route(route, endpoint);
+    }
+
+    pub fn post<H>(&mut self, path: &str, handler: H) -> ControllerActionBuilder<'_>
+    where
+        H: HttpHandler + Send + Sync + 'static,
+    {
+        self.action("POST", path, handler)
+    }
+
+    pub fn get<H>(&mut self, path: &str, handler: H) -> ControllerActionBuilder<'_>
+    where
+        H: HttpHandler + Send + Sync + 'static,
+    {
+        self.action("GET", path, handler)
+    }
+
+    fn action<H>(
+        &mut self,
+        method: &'static str,
+        path: &str,
+        handler: H,
+    ) -> ControllerActionBuilder<'_>
+    where
+        H: HttpHandler + Send + Sync + 'static,
+    {
+        let metadata = EndpointMetadata::new(method, path);
+        let endpoint = Endpoint::new(
+            EndpointKind::Http(HttpEndpointHandler::new(handler)),
+            metadata,
+        );
+        ControllerActionBuilder {
+            registry: self,
+            method,
+            path: path.to_string(),
+            endpoint,
+        }
     }
 
     pub fn add_with_policy<H>(&mut self, method: &str, path: &str, handler: H, policy: Policy)
