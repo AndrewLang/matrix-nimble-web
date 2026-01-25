@@ -19,4 +19,10 @@ impl HttpHeaders {
     pub fn get(&self, key: &str) -> Option<&str> {
         self.values.get(key).map(|value| value.as_str())
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.values
+            .iter()
+            .map(|(key, value)| (key.as_str(), value.as_str()))
+    }
 }
