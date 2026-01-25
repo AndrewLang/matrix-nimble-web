@@ -8,6 +8,7 @@ pub mod endpoint;
 pub mod entity;
 pub mod http;
 pub mod middleware;
+pub mod openapi;
 pub mod pipeline;
 pub mod result;
 pub mod routing;

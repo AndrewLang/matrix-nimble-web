@@ -8,6 +8,7 @@ use crate::http::response::HttpResponse;
 use crate::middleware::endpoint_exec::EndpointExecutionMiddleware;
 use crate::middleware::routing::RoutingMiddleware;
 use crate::pipeline::middleware::Middleware;
+use crate::routing::route::Route;
 use crate::routing::router::Router;
 use crate::routing::simple_router::SimpleRouter;
 use crate::validation::ValidationMiddleware;
@@ -37,6 +38,8 @@ impl TestApp {
     pub fn add_controller<T: Controller>(mut self) -> Self {
         let mut registry = ControllerRegistry::new();
         T::register(&mut registry);
+        self.controller_registry
+            .merge_openapi_registry(registry.openapi_registry());
         for (route, endpoint) in registry
             .routes()
             .iter()
@@ -60,9 +63,14 @@ impl TestApp {
     pub fn run(self, request: HttpRequest) -> HttpResponse {
         let mut builder = self.builder.expect("test app builder");
         if !self.controller_registry.routes().is_empty() {
+            let mut controller_registry = self.controller_registry;
+            let mut router = self.router;
+            if controller_registry.ensure_openapi_endpoint() {
+                router.add_route(Route::new("GET", "/openapi.json"));
+            }
             builder.use_middleware(RoutingMiddleware::with_registry(
-                self.router,
-                Arc::new(self.controller_registry),
+                router,
+                Arc::new(controller_registry),
             ));
             builder.use_middleware(ValidationMiddleware::new());
             builder.use_middleware(EndpointExecutionMiddleware::new());

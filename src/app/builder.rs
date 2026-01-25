@@ -33,6 +33,9 @@ impl AppBuilder {
         let mut registry = ControllerRegistry::new();
         T::register(&mut registry);
 
+        self.controller_registry
+            .merge_openapi_registry(registry.openapi_registry());
+
         for (route, endpoint) in registry
             .routes()
             .iter()
