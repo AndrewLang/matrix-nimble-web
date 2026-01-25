@@ -8,7 +8,7 @@ pub use generator::OpenApiGenerator;
 pub use handler::OpenApiHandler;
 pub use model::{
     Components, MediaType, OpenApiDocument, OpenApiInfo, Operation, Parameter, PathItem,
-    RequestBody, Response, Schema, SchemaRef, SecurityScheme,
+    RequestBody, Response, Schema, SchemaRef, SecurityScheme, Tag,
 };
 pub use registry::{OpenApiEntry, OpenApiOperationMetadata, OpenApiRegistry};
 pub use schema::{OpenApiSchema, SchemaRegistry};

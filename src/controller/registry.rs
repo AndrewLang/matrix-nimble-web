@@ -3,6 +3,7 @@ use crate::endpoint::endpoint::Endpoint;
 use crate::endpoint::http_handler::HttpHandler;
 use crate::endpoint::kind::{EndpointKind, HttpEndpointHandler};
 use crate::endpoint::metadata::EndpointMetadata;
+use crate::entity::entity::Entity;
 use crate::openapi::handler::OpenApiHandler;
 use crate::openapi::registry::{OpenApiOperationMetadata, OpenApiRegistry};
 use crate::routing::route::Route;
@@ -34,7 +35,7 @@ impl<'a> ControllerActionBuilder<'a> {
 
     pub fn body<T>(mut self) -> Self
     where
-        T: crate::openapi::OpenApiSchema,
+        T: crate::openapi::OpenApiSchema + 'static,
     {
         let schema_ref = self.registry.openapi_registry.register_schema::<T>();
         self.openapi.request_body = Some(schema_ref);
@@ -43,7 +44,7 @@ impl<'a> ControllerActionBuilder<'a> {
 
     pub fn param<T>(mut self, name: &str) -> Self
     where
-        T: crate::openapi::OpenApiSchema,
+        T: crate::openapi::OpenApiSchema + 'static,
     {
         let schema_ref = self.registry.openapi_registry.register_schema::<T>();
         self.openapi
@@ -54,7 +55,7 @@ impl<'a> ControllerActionBuilder<'a> {
 
     pub fn query<T>(mut self, name: &str) -> Self
     where
-        T: crate::openapi::OpenApiSchema,
+        T: crate::openapi::OpenApiSchema + 'static,
     {
         let schema_ref = self.registry.openapi_registry.register_schema::<T>();
         self.openapi
@@ -65,7 +66,7 @@ impl<'a> ControllerActionBuilder<'a> {
 
     pub fn responds<T>(mut self, status: u16) -> Self
     where
-        T: crate::openapi::OpenApiSchema,
+        T: crate::openapi::OpenApiSchema + 'static,
     {
         let schema_ref = self.registry.openapi_registry.register_schema::<T>();
         self.openapi.responses.insert(status, schema_ref);
@@ -172,11 +173,7 @@ impl ControllerRegistry {
     }
 
     pub fn add_route(&mut self, route: Route, endpoint: Endpoint) {
-        self.add_route_with_openapi(
-            route,
-            endpoint,
-            OpenApiOperationMetadata::default(),
-        );
+        self.add_route_with_openapi(route, endpoint, OpenApiOperationMetadata::default());
     }
 
     fn add_route_with_openapi(
@@ -212,6 +209,10 @@ impl ControllerRegistry {
 
     pub fn merge_openapi_registry(&mut self, registry: OpenApiRegistry) {
         self.openapi_registry.merge(registry);
+    }
+
+    pub fn register_entity<T: Entity>(&mut self) {
+        self.openapi_registry.register_entity::<T>();
     }
 
     pub fn ensure_openapi_endpoint(&mut self) -> bool {

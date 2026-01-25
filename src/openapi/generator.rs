@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::openapi::model::{
     Components, MediaType, OpenApiDocument, OpenApiInfo, Operation, Parameter, PathItem,
-    RequestBody, Response, SecurityScheme,
+    RequestBody, Response, SecurityScheme, Tag,
 };
 use crate::openapi::registry::OpenApiRegistry;
 
@@ -16,11 +16,9 @@ impl OpenApiGenerator {
 
         for entry in registry.entries() {
             let method = entry.method.to_lowercase();
-            let path_item = paths
-                .entry(entry.path.clone())
-                .or_insert_with(|| PathItem {
-                    operations: HashMap::new(),
-                });
+            let path_item = paths.entry(entry.path.clone()).or_insert_with(|| PathItem {
+                operations: HashMap::new(),
+            });
             let parameters = build_parameters(entry);
             let security = if entry.metadata.requires_auth {
                 requires_auth = true;
@@ -30,26 +28,15 @@ impl OpenApiGenerator {
             } else {
                 Vec::new()
             };
-            path_item.operations.entry(method).or_insert_with(|| Operation {
-                operation_id: entry.metadata.operation_id.clone(),
-                summary: entry.metadata.summary.clone(),
-                description: entry.metadata.description.clone(),
-                tags: entry.metadata.tags.clone(),
-                request_body: entry.metadata.request_body.as_ref().map(|schema_ref| {
-                    let mut content = HashMap::new();
-                    content.insert(
-                        "application/json".to_string(),
-                        MediaType {
-                            schema: Some(schema_ref.clone()),
-                        },
-                    );
-                    RequestBody { content }
-                }),
-                responses: entry
-                    .metadata
-                    .responses
-                    .iter()
-                    .map(|(status, schema_ref)| {
+            path_item
+                .operations
+                .entry(method)
+                .or_insert_with(|| Operation {
+                    operation_id: entry.metadata.operation_id.clone(),
+                    summary: entry.metadata.summary.clone(),
+                    description: entry.metadata.description.clone(),
+                    tags: entry.metadata.tags.clone(),
+                    request_body: entry.metadata.request_body.as_ref().map(|schema_ref| {
                         let mut content = HashMap::new();
                         content.insert(
                             "application/json".to_string(),
@@ -57,18 +44,32 @@ impl OpenApiGenerator {
                                 schema: Some(schema_ref.clone()),
                             },
                         );
-                        (
-                            status.to_string(),
-                            Response {
-                                description: "response".to_string(),
-                                content,
-                            },
-                        )
-                    })
-                    .collect(),
-                parameters,
-                security,
-            });
+                        RequestBody { content }
+                    }),
+                    responses: entry
+                        .metadata
+                        .responses
+                        .iter()
+                        .map(|(status, schema_ref)| {
+                            let mut content = HashMap::new();
+                            content.insert(
+                                "application/json".to_string(),
+                                MediaType {
+                                    schema: Some(schema_ref.clone()),
+                                },
+                            );
+                            (
+                                status.to_string(),
+                                Response {
+                                    description: "response".to_string(),
+                                    content,
+                                },
+                            )
+                        })
+                        .collect(),
+                    parameters,
+                    security,
+                });
         }
 
         // Ensure the OpenAPI endpoint is listed.
@@ -93,6 +94,14 @@ impl OpenApiGenerator {
             );
         }
 
+        let tags = registry
+            .entities()
+            .map(|entity| Tag {
+                name: entity.plural_name().to_string(),
+                description: Some(format!("Operations for {}", entity.name())),
+            })
+            .collect();
+
         OpenApiDocument {
             openapi: "3.1.0".to_string(),
             info: OpenApiInfo {
@@ -104,6 +113,7 @@ impl OpenApiGenerator {
                 schemas: registry.schemas().schemas().clone(),
                 security_schemes,
             },
+            tags,
         }
     }
 }

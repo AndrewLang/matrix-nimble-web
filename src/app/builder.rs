@@ -6,6 +6,8 @@ use crate::background::job_queue::JobQueue;
 use crate::controller::controller::Controller;
 use crate::controller::registry::ControllerRegistry;
 use crate::di::ServiceContainer;
+use crate::entity::entity::Entity;
+use crate::entity::registry::EntityRegistry;
 use crate::pipeline::middleware::Middleware;
 use crate::pipeline::pipeline::Pipeline;
 use crate::routing::router::Router;
@@ -21,6 +23,7 @@ pub struct AppBuilder {
     services: ServiceContainer,
     hosted_services: HostedServiceHost,
     job_queue: Option<Arc<dyn JobQueue>>,
+    entity_registry: EntityRegistry,
 }
 
 impl AppBuilder {
@@ -32,6 +35,7 @@ impl AppBuilder {
             services: ServiceContainer::new(),
             hosted_services: HostedServiceHost::new(),
             job_queue: None,
+            entity_registry: EntityRegistry::new(),
         }
     }
 
@@ -91,8 +95,29 @@ impl AppBuilder {
         self
     }
 
+    pub fn add_entity<T: Entity>(&mut self) -> &mut Self {
+        self.entity_registry.register::<T>();
+        self.controller_registry.register_entity::<T>();
+        self
+    }
+
     pub fn build(self) -> Application {
-        let services = self.services.build();
-        Application::new(self.pipeline, services, self.hosted_services, self.job_queue)
+        let AppBuilder {
+            pipeline,
+            controller_registry: _,
+            router: _,
+            mut services,
+            hosted_services,
+            job_queue,
+            entity_registry,
+        } = self;
+        let registry = Arc::new(entity_registry);
+        services.register_singleton::<Arc<EntityRegistry>, _>(move |_| registry.clone());
+        let services = services.build();
+        Application::new(pipeline, services, hosted_services, job_queue)
+    }
+
+    pub(crate) fn entity_registry_clone(&self) -> EntityRegistry {
+        EntityRegistry::from_registry(&self.entity_registry)
     }
 }

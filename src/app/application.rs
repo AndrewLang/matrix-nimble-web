@@ -33,7 +33,9 @@ impl Application {
 
     pub fn start(&self) {
         let ctx = match &self.job_queue {
-            Some(queue) => HostedServiceContext::with_job_queue(self.services.clone(), queue.clone()),
+            Some(queue) => {
+                HostedServiceContext::with_job_queue(self.services.clone(), queue.clone())
+            }
             None => HostedServiceContext::new(self.services.clone()),
         };
         self.hosted_services.start(ctx);
@@ -41,6 +43,10 @@ impl Application {
 
     pub fn shutdown(&self) {
         self.hosted_services.stop();
+    }
+
+    pub fn services(&self) -> &ServiceProvider {
+        &self.services
     }
 
     pub fn handle_http(&self, request: HttpRequest) -> HttpResponse {

@@ -4,8 +4,8 @@ use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::response_body::ResponseBody;
 use nimble_web::openapi::model::OpenApiDocument;
-use nimble_web::openapi::Schema;
 use nimble_web::openapi::OpenApiSchema;
+use nimble_web::openapi::Schema;
 use nimble_web::pipeline::pipeline::PipelineError;
 use nimble_web::result::into_response::ResponseValue;
 use nimble_web::security::policy::Policy;
@@ -40,7 +40,9 @@ impl HttpHandler for PhotosPost {
 #[test]
 fn openapi_endpoint_lists_routes_and_methods() {
     let request = HttpRequestBuilder::get("/openapi.json").build();
-    let response = TestApp::new().add_controller::<PhotosController>().run(request);
+    let response = TestApp::new()
+        .add_controller::<PhotosController>()
+        .run(request);
 
     assert_eq!(response.status(), 200);
 
@@ -50,8 +52,7 @@ fn openapi_endpoint_lists_routes_and_methods() {
         other => panic!("unexpected response body: {:?}", other),
     };
 
-    let document: OpenApiDocument =
-        serde_json::from_str(&body).expect("openapi json payload");
+    let document: OpenApiDocument = serde_json::from_str(&body).expect("openapi json payload");
 
     assert_eq!(document.openapi, "3.1.0");
     let photos = document.paths.get("/photos").expect("photos path");
@@ -74,14 +75,10 @@ fn openapi_includes_summary_and_tags() {
         other => panic!("unexpected response body: {:?}", other),
     };
 
-    let document: OpenApiDocument =
-        serde_json::from_str(&body).expect("openapi json payload");
+    let document: OpenApiDocument = serde_json::from_str(&body).expect("openapi json payload");
 
     let path_item = document.paths.get("/widgets").expect("widgets path");
-    let operation = path_item
-        .operations
-        .get("get")
-        .expect("get operation");
+    let operation = path_item.operations.get("get").expect("get operation");
     assert_eq!(operation.summary.as_deref(), Some("List widgets"));
     assert!(operation.tags.iter().any(|tag| tag == "widgets"));
 }
@@ -101,20 +98,13 @@ fn openapi_includes_request_and_response_schemas() {
         other => panic!("unexpected response body: {:?}", other),
     };
 
-    let document: OpenApiDocument =
-        serde_json::from_str(&body).expect("openapi json payload");
+    let document: OpenApiDocument = serde_json::from_str(&body).expect("openapi json payload");
 
     assert!(document.components.schemas.contains_key("CreateWidget"));
-    assert!(document
-        .components
-        .schemas
-        .contains_key("WidgetResponse"));
+    assert!(document.components.schemas.contains_key("WidgetResponse"));
 
     let path_item = document.paths.get("/widgets").expect("widgets path");
-    let operation = path_item
-        .operations
-        .get("post")
-        .expect("post operation");
+    let operation = path_item.operations.get("post").expect("post operation");
 
     let request_body = operation.request_body.as_ref().expect("request body");
     let request_schema = request_body
@@ -148,14 +138,10 @@ fn openapi_includes_parameters_and_auth() {
         other => panic!("unexpected response body: {:?}", other),
     };
 
-    let document: OpenApiDocument =
-        serde_json::from_str(&body).expect("openapi json payload");
+    let document: OpenApiDocument = serde_json::from_str(&body).expect("openapi json payload");
 
     let path_item = document.paths.get("/photos/{id}").expect("path params");
-    let operation = path_item
-        .operations
-        .get("post")
-        .expect("post operation");
+    let operation = path_item.operations.get("post").expect("post operation");
 
     let id_param = operation
         .parameters
@@ -182,10 +168,7 @@ fn openapi_includes_parameters_and_auth() {
     assert!(page_size_param.schema.ref_path.ends_with("/i32"));
 
     let secure_item = document.paths.get("/secure").expect("secure path");
-    let secure_op = secure_item
-        .operations
-        .get("get")
-        .expect("get operation");
+    let secure_op = secure_item.operations.get("get").expect("get operation");
     assert!(secure_op
         .security
         .iter()

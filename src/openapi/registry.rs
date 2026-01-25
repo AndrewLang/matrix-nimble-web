@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::entity::entity::Entity;
+use crate::entity::metadata::EntityMetadata;
 use crate::openapi::model::SchemaRef;
 use crate::openapi::schema::{OpenApiSchema, SchemaRegistry};
 
@@ -7,6 +9,7 @@ use crate::openapi::schema::{OpenApiSchema, SchemaRegistry};
 pub struct OpenApiRegistry {
     entries: Vec<OpenApiEntry>,
     schemas: SchemaRegistry,
+    entities: HashMap<&'static str, EntityMetadata>,
 }
 
 #[derive(Clone, Debug)]
@@ -40,6 +43,7 @@ impl OpenApiRegistry {
         let mut registry = Self {
             entries: Vec::new(),
             schemas: SchemaRegistry::new(),
+            entities: HashMap::new(),
         };
         registry.schemas.register::<String>();
         registry
@@ -101,7 +105,7 @@ impl OpenApiRegistry {
         &self.entries
     }
 
-    pub fn register_schema<T: OpenApiSchema>(&mut self) -> SchemaRef {
+    pub fn register_schema<T: OpenApiSchema + 'static>(&mut self) -> SchemaRef {
         self.schemas.register::<T>()
     }
 
@@ -109,11 +113,24 @@ impl OpenApiRegistry {
         &self.schemas
     }
 
+    pub fn register_entity<T: Entity>(&mut self) {
+        let metadata = EntityMetadata::of::<T>();
+        self.schemas.set_type_name::<T>(metadata.name());
+        self.entities.entry(metadata.name()).or_insert(metadata);
+    }
+
+    pub fn entities(&self) -> impl Iterator<Item = &EntityMetadata> {
+        self.entities.values()
+    }
+
     pub fn merge(&mut self, registry: OpenApiRegistry) {
         for entry in registry.entries {
             self.add_with_metadata(&entry.method, &entry.path, entry.metadata);
         }
         self.schemas.merge(&registry.schemas);
+        for (name, metadata) in registry.entities {
+            self.entities.entry(name).or_insert(metadata);
+        }
     }
 }
 

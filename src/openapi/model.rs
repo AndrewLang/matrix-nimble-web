@@ -8,6 +8,8 @@ pub struct OpenApiDocument {
     pub info: OpenApiInfo,
     pub paths: HashMap<String, PathItem>,
     pub components: Components,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub tags: Vec<Tag>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -46,7 +48,11 @@ pub struct Operation {
 pub struct Components {
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     pub schemas: HashMap<String, Schema>,
-    #[serde(rename = "securitySchemes", skip_serializing_if = "HashMap::is_empty", default)]
+    #[serde(
+        rename = "securitySchemes",
+        skip_serializing_if = "HashMap::is_empty",
+        default
+    )]
     pub security_schemes: HashMap<String, SecurityScheme>,
 }
 
@@ -83,6 +89,13 @@ pub struct SecurityScheme {
     pub kind: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scheme: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Tag {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
