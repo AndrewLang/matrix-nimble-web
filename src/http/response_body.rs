@@ -16,14 +16,10 @@ impl fmt::Debug for ResponseBody {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ResponseBody::Empty => f.write_str("ResponseBody::Empty"),
-            ResponseBody::Bytes(bytes) => f
-                .debug_tuple("ResponseBody::Bytes")
-                .field(bytes)
-                .finish(),
-            ResponseBody::Text(text) => f
-                .debug_tuple("ResponseBody::Text")
-                .field(text)
-                .finish(),
+            ResponseBody::Bytes(bytes) => {
+                f.debug_tuple("ResponseBody::Bytes").field(bytes).finish()
+            }
+            ResponseBody::Text(text) => f.debug_tuple("ResponseBody::Text").field(text).finish(),
             ResponseBody::Stream(_) => f.write_str("ResponseBody::Stream(..)"),
         }
     }

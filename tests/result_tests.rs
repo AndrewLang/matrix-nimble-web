@@ -126,8 +126,7 @@ fn endpoint_execution_applies_into_response() {
 #[test]
 fn file_response_uses_stream_body() {
     let mut context = make_context("GET", "/file");
-    let temp_path = std::env::temp_dir()
-        .join(format!("nimble-web-stream-{}.txt", unique_suffix()));
+    let temp_path = std::env::temp_dir().join(format!("nimble-web-stream-{}.txt", unique_suffix()));
     std::fs::write(&temp_path, b"stream me").expect("write temp file");
 
     FileResponse::from_path(&temp_path).into_response(&mut context);
