@@ -28,7 +28,11 @@ impl HyperRuntime {
     }
 
     async fn handle_request(app: Arc<Application>, req: Request<Incoming>) -> Response<BoxedBody> {
-        let mut request = HttpRequest::new(req.method().as_str(), req.uri().path());
+        let method = req.method().as_str().to_string();
+        let path = req.uri().path().to_string();
+        log::debug!("request {} {}", method, path);
+
+        let mut request = HttpRequest::new(&method, &path);
         for (name, value) in req.headers().iter() {
             if let Ok(value) = value.to_str() {
                 request.headers_mut().insert(name.as_str(), value);
@@ -45,6 +49,7 @@ impl HyperRuntime {
         }
 
         let response = app.handle_http(request);
+        log::debug!("response {} {} -> {}", method, path, response.status());
         Self::to_hyper_response(response)
     }
 
@@ -88,6 +93,7 @@ impl Runtime for HyperRuntime {
         shutdown: Pin<Box<dyn Future<Output = ()> + Send + 'a>>,
     ) -> RuntimeFuture<'a> {
         Box::pin(async move {
+            log::info!("runtime accept loop started");
             let listener = tokio::net::TcpListener::from_std(listener)
                 .map_err(|err| AppError::runtime("bind", err))?;
 
@@ -95,10 +101,12 @@ impl Runtime for HyperRuntime {
             loop {
                 tokio::select! {
                     _ = &mut shutdown => {
+                        log::info!("runtime shutdown signal received");
                         break;
                     }
                     accept = listener.accept() => {
                         let (stream, _) = accept.map_err(|err| AppError::runtime("accept", err))?;
+                        log::debug!("accepted connection");
                         let io = TokioIo::new(stream);
                         let app = Arc::clone(&app);
                         let service = service_fn(move |req| {
@@ -116,6 +124,7 @@ impl Runtime for HyperRuntime {
                     }
                 }
             }
+            log::info!("runtime accept loop stopped");
             Ok(())
         })
     }

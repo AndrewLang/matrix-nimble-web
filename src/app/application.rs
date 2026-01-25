@@ -1,3 +1,5 @@
+use std::error::Error;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -41,6 +43,7 @@ impl Application {
 
     pub async fn start(self) -> Result<(), AppError> {
         let addr = self.parse_address()?;
+        log::info!("Start application at {}", addr);
         let wants_random = addr.port() == 0;
         let listener =
             std::net::TcpListener::bind(addr).map_err(|err| AppError::runtime("bind", err))?;
@@ -48,17 +51,19 @@ impl Application {
             .local_addr()
             .map_err(|err| AppError::runtime("bind", err))?;
 
+        let bound_address = local_addr.to_string();
+        log::info!("Application listening on {}", bound_address);
         if wants_random {
-            std::env::set_var("NIMBLE_BOUND_ADDRESS", local_addr.to_string());
+            std::env::set_var("NIMBLE_BOUND_ADDRESS", bound_address);
         }
 
-        let ctx = match &self.job_queue {
+        let context = match &self.job_queue {
             Some(queue) => {
                 HostedServiceContext::with_job_queue(self.services.clone(), queue.clone())
             }
             None => HostedServiceContext::new(self.services.clone()),
         };
-        self.hosted_services.start(ctx);
+        self.hosted_services.start(context);
 
         let runtime = HyperRuntime::new();
         let shutdown = shutdown_signal();
@@ -66,6 +71,7 @@ impl Application {
         runtime
             .run(listener, Arc::clone(&app), Box::pin(shutdown))
             .await?;
+        log::info!("Shutting down application");
         app.shutdown();
         app.flush_jobs();
         Ok(())
@@ -80,6 +86,12 @@ impl Application {
     }
 
     pub fn handle_http(&self, request: HttpRequest) -> HttpResponse {
+        log::debug!(
+            "Handling HTTP request: {} {}",
+            request.method(),
+            request.path()
+        );
+
         let services = self.services.clone();
         let config = ConfigBuilder::new().build();
         let mut context = HttpContext::new(request, services, config);
@@ -116,13 +128,13 @@ pub enum AppError {
 }
 
 impl AppError {
-    pub(crate) fn runtime(stage: &str, err: impl std::fmt::Display) -> Self {
+    pub(crate) fn runtime(stage: &str, err: impl Display) -> Self {
         AppError::Runtime(format!("{}: {}", stage, err))
     }
 }
 
-impl std::fmt::Display for AppError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for AppError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             AppError::InvalidAddress(address) => {
                 write!(f, "invalid address: {}", address)
@@ -132,7 +144,7 @@ impl std::fmt::Display for AppError {
     }
 }
 
-impl std::error::Error for AppError {}
+impl Error for AppError {}
 
 async fn shutdown_signal() {
     #[cfg(unix)]

@@ -1,0 +1,11 @@
+{
+  "name": "nimble-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "cargo build",
+    "test": "cargo test",
+    "start:light": "cargo run --example light_server",
+    "start:light:env": "NIMBLE_ADDRESS=127.0.0.1:8080 cargo run --example light_server"
+  }
+}

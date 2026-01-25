@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::sync::Arc;
 
 use crate::http::context::HttpContext;
@@ -36,7 +36,7 @@ impl ContextValidator {
 }
 
 impl Debug for ContextValidator {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.write_str("Validator(..)")
     }
 }
