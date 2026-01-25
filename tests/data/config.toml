@@ -1,0 +1,9 @@
+﻿[server]
+host = "127.0.0.1"
+port = 8080
+
+[upload.max]
+mb = 75
+
+[flags]
+enabled = false

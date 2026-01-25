@@ -1,5 +1,6 @@
-pub mod app;
+﻿pub mod app;
 pub mod background;
+pub mod config;
 pub mod controller;
 pub mod crud;
 pub mod di;

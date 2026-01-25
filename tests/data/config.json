@@ -1,0 +1,23 @@
+﻿{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=mrp;Username=mrp_user;Password=mrp_dev_password"
+  },
+  "Jwt": {
+    "Key": "jwt-key",
+    "Issuer": "mrp-issuer",
+    "Audience": "mrp-audience",
+    "AccessTokenMinutes": 60
+  },
+  "server": {
+    "host": "127.0.0.1",
+    "port": 3000
+  },
+  "upload": {
+    "max": {
+      "mb": 50
+    }
+  },
+  "flags": {
+    "enabled": true
+  }
+}
