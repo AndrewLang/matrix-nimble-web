@@ -9,6 +9,7 @@ use crate::http::request::HttpRequest;
 use crate::http::response::HttpResponse;
 use crate::result::into_response::ResponseValue;
 use crate::routing::route_data::RouteData;
+use crate::validation::ValidationError;
 
 pub struct HttpContext {
     request: HttpRequest,
@@ -43,6 +44,13 @@ impl HttpContext {
 
     pub fn request_mut(&mut self) -> &mut HttpRequest {
         &mut self.request
+    }
+
+    pub fn read_json<T>(&self) -> Result<T, ValidationError>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        self.read_body_as()
     }
 
     pub fn response(&self) -> &HttpResponse {
@@ -98,5 +106,24 @@ impl HttpContext {
         self.items
             .get(&TypeId::of::<T>())
             .and_then(|value| value.downcast_ref::<T>())
+    }
+
+    pub fn read_body_as<T>(&self) -> Result<T, ValidationError>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        match self.request.body() {
+            crate::http::request_body::RequestBody::Text(text) => {
+                serde_json::from_str(text).map_err(|err| ValidationError::new(&err.to_string()))
+            }
+            crate::http::request_body::RequestBody::Bytes(bytes) => {
+                let text = std::str::from_utf8(bytes)
+                    .map_err(|err| ValidationError::new(&err.to_string()))?;
+                serde_json::from_str(text).map_err(|err| ValidationError::new(&err.to_string()))
+            }
+            crate::http::request_body::RequestBody::Empty => {
+                Err(ValidationError::new("empty request body"))
+            }
+        }
     }
 }

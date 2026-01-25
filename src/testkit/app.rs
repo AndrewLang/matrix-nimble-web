@@ -10,6 +10,7 @@ use crate::middleware::routing::RoutingMiddleware;
 use crate::pipeline::middleware::Middleware;
 use crate::routing::router::Router;
 use crate::routing::simple_router::SimpleRouter;
+use crate::validation::ValidationMiddleware;
 
 pub struct TestApp {
     builder: Option<AppBuilder>,
@@ -63,6 +64,7 @@ impl TestApp {
                 self.router,
                 Arc::new(self.controller_registry),
             ));
+            builder.use_middleware(ValidationMiddleware::new());
             builder.use_middleware(EndpointExecutionMiddleware::new());
         }
         let app = builder.build();

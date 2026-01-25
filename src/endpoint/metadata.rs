@@ -1,10 +1,16 @@
-#[derive(Clone, Debug, PartialEq, Eq)]
+use std::sync::Arc;
+
+use crate::security::policy::Policy;
+use crate::validation::AnyValidator;
+
+#[derive(Clone)]
 pub struct EndpointMetadata {
     method: String,
     route_pattern: String,
     name: Option<String>,
     tags: Vec<String>,
-    policy: Option<crate::security::policy::Policy>,
+    policy: Option<Policy>,
+    validators: Vec<Arc<dyn AnyValidator>>,
 }
 
 impl EndpointMetadata {
@@ -15,6 +21,7 @@ impl EndpointMetadata {
             name: None,
             tags: Vec::new(),
             policy: None,
+            validators: Vec::new(),
         }
     }
 
@@ -34,13 +41,25 @@ impl EndpointMetadata {
         &self.tags
     }
 
-    pub fn require_policy(mut self, policy: crate::security::policy::Policy) -> Self {
+    pub fn require_policy(mut self, policy: Policy) -> Self {
         self.policy = Some(policy);
         self
     }
 
-    pub fn policy(&self) -> Option<&crate::security::policy::Policy> {
+    pub fn policy(&self) -> Option<&Policy> {
         self.policy.as_ref()
+    }
+
+    pub fn add_validator<T>(mut self, validator: T) -> Self
+    where
+        T: AnyValidator + 'static,
+    {
+        self.validators.push(Arc::new(validator));
+        self
+    }
+
+    pub fn validators(&self) -> &[Arc<dyn AnyValidator>] {
+        &self.validators
     }
 
     pub fn with_name(mut self, name: &str) -> Self {

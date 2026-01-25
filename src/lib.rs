@@ -13,4 +13,5 @@ pub mod result;
 pub mod routing;
 pub mod security;
 pub mod testkit;
+pub mod validation;
 pub mod websocket;
