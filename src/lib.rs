@@ -6,7 +6,6 @@ pub mod crud;
 pub mod di;
 pub mod endpoint;
 pub mod entity;
-pub mod filters;
 pub mod http;
 pub mod middleware;
 pub mod pipeline;
