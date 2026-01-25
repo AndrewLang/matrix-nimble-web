@@ -2,7 +2,6 @@
 pub mod background;
 pub mod config;
 pub mod controller;
-pub mod crud;
 pub mod di;
 pub mod endpoint;
 pub mod entity;
