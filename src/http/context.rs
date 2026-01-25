@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use crate::config::Configuration;
 use crate::di::ServiceProvider;
+use crate::endpoint::endpoint::Endpoint;
 use crate::http::request::HttpRequest;
 use crate::http::response::HttpResponse;
 use crate::routing::route_data::RouteData;
@@ -15,6 +16,7 @@ pub struct HttpContext {
     config: Arc<Configuration>,
     items: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
     route: Option<RouteData>,
+    endpoint: Option<Endpoint>,
 }
 
 impl HttpContext {
@@ -28,6 +30,7 @@ impl HttpContext {
             config: Arc::new(config),
             items: HashMap::new(),
             route: None,
+            endpoint: None,
         }
     }
 
@@ -57,6 +60,14 @@ impl HttpContext {
 
     pub fn set_route(&mut self, route: RouteData) {
         self.route = Some(route);
+    }
+
+    pub fn endpoint(&self) -> Option<&Endpoint> {
+        self.endpoint.as_ref()
+    }
+
+    pub fn set_endpoint(&mut self, endpoint: Endpoint) {
+        self.endpoint = Some(endpoint);
     }
 
     pub fn insert<T>(&mut self, value: T)
