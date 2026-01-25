@@ -24,6 +24,7 @@ pub struct AppBuilder {
     hosted_services: HostedServiceHost,
     job_queue: Option<Arc<dyn JobQueue>>,
     entity_registry: EntityRegistry,
+    address: Option<String>,
 }
 
 impl AppBuilder {
@@ -36,6 +37,7 @@ impl AppBuilder {
             hosted_services: HostedServiceHost::new(),
             job_queue: None,
             entity_registry: EntityRegistry::new(),
+            address: None,
         }
     }
 
@@ -101,6 +103,23 @@ impl AppBuilder {
         self
     }
 
+    pub fn use_address(&mut self, address: &str) -> &mut Self {
+        self.address = Some(address.to_string());
+        self
+    }
+
+    pub fn use_address_env(&mut self, env_name: &str) -> &mut Self {
+        let address = std::env::var(env_name).unwrap_or_else(|_| "0.0.0.0:8080".to_string());
+        self.address = Some(address);
+        self
+    }
+
+    pub fn use_address_env_or(&mut self, env_name: &str, default: &str) -> &mut Self {
+        let address = std::env::var(env_name).unwrap_or_else(|_| default.to_string());
+        self.address = Some(address);
+        self
+    }
+
     pub fn build(self) -> Application {
         let AppBuilder {
             pipeline,
@@ -110,11 +129,13 @@ impl AppBuilder {
             hosted_services,
             job_queue,
             entity_registry,
+            address,
         } = self;
         let registry = Arc::new(entity_registry);
         services.register_singleton::<Arc<EntityRegistry>, _>(move |_| registry.clone());
         let services = services.build();
-        Application::new(pipeline, services, hosted_services, job_queue)
+        let address = address.unwrap_or_else(|| "0.0.0.0:8080".to_string());
+        Application::new(pipeline, services, hosted_services, job_queue, address)
     }
 
     pub(crate) fn entity_registry_clone(&self) -> EntityRegistry {

@@ -1,19 +1,25 @@
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use crate::background::hosted_service::{HostedServiceContext, HostedServiceHost};
+use crate::background::in_memory_queue::InMemoryJobQueue;
 use crate::background::job_queue::JobQueue;
+use crate::background::runner::JobQueueRunner;
 use crate::config::ConfigBuilder;
 use crate::di::ServiceProvider;
 use crate::http::context::HttpContext;
 use crate::http::request::HttpRequest;
 use crate::http::response::HttpResponse;
 use crate::pipeline::pipeline::Pipeline;
+use crate::runtime::hyper_runtime::HyperRuntime;
+use crate::runtime::runtime::Runtime;
 
 pub struct Application {
     pipeline: Pipeline,
     services: ServiceProvider,
     hosted_services: HostedServiceHost,
     job_queue: Option<Arc<dyn JobQueue>>,
+    address: String,
 }
 
 impl Application {
@@ -22,16 +28,30 @@ impl Application {
         services: ServiceProvider,
         hosted_services: HostedServiceHost,
         job_queue: Option<Arc<dyn JobQueue>>,
+        address: String,
     ) -> Self {
         Self {
             pipeline,
             services,
             hosted_services,
             job_queue,
+            address,
         }
     }
 
-    pub fn start(&self) {
+    pub async fn start(self) -> Result<(), AppError> {
+        let addr = self.parse_address()?;
+        let wants_random = addr.port() == 0;
+        let listener =
+            std::net::TcpListener::bind(addr).map_err(|err| AppError::runtime("bind", err))?;
+        let local_addr = listener
+            .local_addr()
+            .map_err(|err| AppError::runtime("bind", err))?;
+
+        if wants_random {
+            std::env::set_var("NIMBLE_BOUND_ADDRESS", local_addr.to_string());
+        }
+
         let ctx = match &self.job_queue {
             Some(queue) => {
                 HostedServiceContext::with_job_queue(self.services.clone(), queue.clone())
@@ -39,6 +59,16 @@ impl Application {
             None => HostedServiceContext::new(self.services.clone()),
         };
         self.hosted_services.start(ctx);
+
+        let runtime = HyperRuntime::new();
+        let shutdown = shutdown_signal();
+        let app = Arc::new(self);
+        runtime
+            .run(listener, Arc::clone(&app), Box::pin(shutdown))
+            .await?;
+        app.shutdown();
+        app.flush_jobs();
+        Ok(())
     }
 
     pub fn shutdown(&self) {
@@ -55,5 +85,68 @@ impl Application {
         let mut context = HttpContext::new(request, services, config);
         let _ = self.pipeline.run(&mut context);
         context.response().clone()
+    }
+
+    fn parse_address(&self) -> Result<SocketAddr, AppError> {
+        self.address
+            .parse()
+            .map_err(|_| AppError::InvalidAddress(self.address.clone()))
+    }
+
+    fn flush_jobs(&self) {
+        let Some(queue) = self.job_queue.as_ref() else {
+            return;
+        };
+
+        if let Some(in_memory) = queue.as_any().downcast_ref::<InMemoryJobQueue>() {
+            in_memory.run_all();
+            return;
+        }
+
+        if let Some(runner) = queue.as_any().downcast_ref::<JobQueueRunner>() {
+            runner.run_pending_jobs();
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum AppError {
+    InvalidAddress(String),
+    Runtime(String),
+}
+
+impl AppError {
+    pub(crate) fn runtime(stage: &str, err: impl std::fmt::Display) -> Self {
+        AppError::Runtime(format!("{}: {}", stage, err))
+    }
+}
+
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AppError::InvalidAddress(address) => {
+                write!(f, "invalid address: {}", address)
+            }
+            AppError::Runtime(message) => write!(f, "runtime error: {}", message),
+        }
+    }
+}
+
+impl std::error::Error for AppError {}
+
+async fn shutdown_signal() {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+        let mut terminate = signal(SignalKind::terminate()).expect("signal handler");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {},
+            _ = terminate.recv() => {},
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
     }
 }

@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
@@ -36,5 +37,9 @@ impl InMemoryJobQueue {
 impl JobQueue for InMemoryJobQueue {
     fn enqueue(&self, job: Box<dyn BackgroundJob>) {
         self.jobs.lock().expect("jobs lock").push_back(job);
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

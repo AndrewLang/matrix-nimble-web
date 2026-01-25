@@ -46,4 +46,8 @@ impl HttpResponse {
     pub fn body(&self) -> &ResponseBody {
         &self.body
     }
+
+    pub fn into_body(self) -> ResponseBody {
+        self.body
+    }
 }

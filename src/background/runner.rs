@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -39,5 +40,9 @@ impl JobQueue for JobQueueRunner {
         if self.accepting.load(Ordering::SeqCst) {
             self.queue.enqueue(job);
         }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

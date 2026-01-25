@@ -212,4 +212,8 @@ impl JobQueue for TestJobQueue {
     fn enqueue(&self, job: Box<dyn BackgroundJob>) {
         self.jobs.lock().expect("jobs lock").push_back(job);
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
