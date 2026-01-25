@@ -1,7 +1,9 @@
+use std::fs::File;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use crate::http::context::HttpContext;
-use crate::http::response_body::ResponseBody;
+use crate::http::response_body::{ResponseBody, ResponseBodyStream};
 use crate::result::into_response::IntoResponse;
 
 pub struct FileResponse {
@@ -41,6 +43,24 @@ impl FileResponse {
         self.filename = Some(filename.to_string());
         self
     }
+
+    fn infer_content_type(path: &Path) -> Option<String> {
+        let ext = path.extension()?.to_str()?.to_ascii_lowercase();
+        let content_type = match ext.as_str() {
+            "txt" => "text/plain; charset=utf-8",
+            "html" => "text/html; charset=utf-8",
+            "htm" => "text/html; charset=utf-8",
+            "json" => "application/json",
+            "css" => "text/css; charset=utf-8",
+            "js" => "application/javascript",
+            "png" => "image/png",
+            "jpg" | "jpeg" => "image/jpeg",
+            "gif" => "image/gif",
+            "svg" => "image/svg+xml",
+            _ => return None,
+        };
+        Some(content_type.to_string())
+    }
 }
 
 impl IntoResponse for FileResponse {
@@ -48,22 +68,26 @@ impl IntoResponse for FileResponse {
         let response = context.response_mut();
         response.set_status(200);
 
-        let (bytes, inferred) = match &self.source {
-            FileSource::Path(path) => match std::fs::read(path) {
-                Ok(bytes) => (bytes, infer_content_type(path)),
+        let inferred = match &self.source {
+            FileSource::Path(path) => Self::infer_content_type(path),
+            FileSource::Bytes(_) => None,
+        };
+
+        let body = match self.source {
+            FileSource::Path(path) => match File::open(&path) {
+                Ok(file) => ResponseBody::Stream(Box::new(FileStream::new(file))),
                 Err(err) => {
                     response.set_status(match err.kind() {
                         std::io::ErrorKind::NotFound => 404,
                         _ => 500,
                     });
-                    response.set_body(ResponseBody::Empty);
-                    return;
+                    ResponseBody::Empty
                 }
             },
-            FileSource::Bytes(bytes) => (bytes.clone(), None),
+            FileSource::Bytes(bytes) => ResponseBody::Bytes(bytes),
         };
 
-        response.set_body(ResponseBody::Bytes(bytes));
+        response.set_body(body);
 
         let content_type = self
             .content_type
@@ -80,20 +104,28 @@ impl IntoResponse for FileResponse {
     }
 }
 
-fn infer_content_type(path: &Path) -> Option<String> {
-    let ext = path.extension()?.to_str()?.to_ascii_lowercase();
-    let content_type = match ext.as_str() {
-        "txt" => "text/plain; charset=utf-8",
-        "html" => "text/html; charset=utf-8",
-        "htm" => "text/html; charset=utf-8",
-        "json" => "application/json",
-        "css" => "text/css; charset=utf-8",
-        "js" => "application/javascript",
-        "png" => "image/png",
-        "jpg" | "jpeg" => "image/jpeg",
-        "gif" => "image/gif",
-        "svg" => "image/svg+xml",
-        _ => return None,
-    };
-    Some(content_type.to_string())
+struct FileStream {
+    file: File,
+    buffer_size: usize,
+}
+
+impl FileStream {
+    fn new(file: File) -> Self {
+        Self {
+            file,
+            buffer_size: 8 * 1024,
+        }
+    }
+}
+
+impl ResponseBodyStream for FileStream {
+    fn read_chunk(&mut self) -> std::io::Result<Option<Vec<u8>>> {
+        let mut buffer = vec![0u8; self.buffer_size];
+        let bytes_read = self.file.read(&mut buffer)?;
+        if bytes_read == 0 {
+            return Ok(None);
+        }
+        buffer.truncate(bytes_read);
+        Ok(Some(buffer))
+    }
 }

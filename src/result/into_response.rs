@@ -9,18 +9,18 @@ pub trait IntoResponse {
 
 #[doc(hidden)]
 pub struct ResponseValue {
-    value: Box<dyn Any + Send + Sync>,
-    responder: fn(Box<dyn Any + Send + Sync>, &mut HttpContext),
+    value: Box<dyn Any + Send>,
+    responder: fn(Box<dyn Any + Send>, &mut HttpContext),
 }
 
 impl ResponseValue {
     pub fn new<T>(value: T) -> Self
     where
-        T: IntoResponse + Send + Sync + 'static,
+        T: IntoResponse + Send + 'static,
     {
-        fn respond<T>(value: Box<dyn Any + Send + Sync>, ctx: &mut HttpContext)
+        fn respond<T>(value: Box<dyn Any + Send>, ctx: &mut HttpContext)
         where
-            T: IntoResponse + Send + Sync + 'static,
+            T: IntoResponse + Send + 'static,
         {
             let value = *value.downcast::<T>().expect("response value type mismatch");
             value.into_response(ctx);
@@ -42,5 +42,3 @@ impl IntoResponse for HttpResponse {
         *context.response_mut() = self;
     }
 }
-
-// Result handling is implemented for specific error types (e.g. HttpError).

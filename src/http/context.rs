@@ -75,7 +75,7 @@ impl HttpContext {
 
     pub fn set_response_value<T>(&mut self, value: T)
     where
-        T: crate::result::IntoResponse + Send + Sync + 'static,
+        T: crate::result::IntoResponse + Send + 'static,
     {
         self.response_value = Some(ResponseValue::new(value));
     }

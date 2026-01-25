@@ -12,7 +12,7 @@ use nimble_web::http::response_body::ResponseBody;
 use nimble_web::middleware::endpoint_exec::EndpointExecutionMiddleware;
 use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
 use nimble_web::result::into_response::{IntoResponse, ResponseValue};
-use nimble_web::result::{HttpError, Json};
+use nimble_web::result::{FileResponse, HttpError, Json};
 
 #[test]
 fn text_response_from_str() {
@@ -123,6 +123,25 @@ fn endpoint_execution_applies_into_response() {
     );
 }
 
+#[test]
+fn file_response_uses_stream_body() {
+    let mut context = make_context("GET", "/file");
+    let temp_path = std::env::temp_dir()
+        .join(format!("nimble-web-stream-{}.txt", unique_suffix()));
+    std::fs::write(&temp_path, b"stream me").expect("write temp file");
+
+    FileResponse::from_path(&temp_path).into_response(&mut context);
+
+    assert_eq!(context.response().status(), 200);
+    assert!(matches!(context.response().body(), ResponseBody::Stream(_)));
+    assert_eq!(
+        context.response().headers().get("content-type"),
+        Some("text/plain; charset=utf-8")
+    );
+
+    let _ = std::fs::remove_file(&temp_path);
+}
+
 struct Status<T> {
     status: u16,
     inner: T,
@@ -157,4 +176,12 @@ fn make_context(method: &str, path: &str) -> HttpContext {
     let services = ServiceContainer::new().build();
     let config = ConfigBuilder::new().build();
     HttpContext::new(request, services, config)
+}
+
+fn unique_suffix() -> u128 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("time")
+        .as_nanos()
 }
