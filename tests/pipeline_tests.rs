@@ -5,9 +5,9 @@ use nimble_web::di::ServiceContainer;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
 use nimble_web::pipeline::middleware::Middleware;
-use nimble_web::pipeline::pipeline::PipelineError;
 use nimble_web::pipeline::next::Next;
 use nimble_web::pipeline::pipeline::Pipeline;
+use nimble_web::pipeline::pipeline::PipelineError;
 
 #[derive(Clone)]
 struct Trace {
@@ -49,7 +49,11 @@ struct StopMiddleware {
 }
 
 impl Middleware for StopMiddleware {
-    async fn handle(&self, context: &mut HttpContext, _next: Next<'_>) -> Result<(), PipelineError> {
+    async fn handle(
+        &self,
+        context: &mut HttpContext,
+        _next: Next<'_>,
+    ) -> Result<(), PipelineError> {
         let _ = context;
         self.trace.push(self.label);
         Ok(())
@@ -61,7 +65,11 @@ struct StatusMiddleware {
 }
 
 impl Middleware for StatusMiddleware {
-    async fn handle(&self, context: &mut HttpContext, _next: Next<'_>) -> Result<(), PipelineError> {
+    async fn handle(
+        &self,
+        context: &mut HttpContext,
+        _next: Next<'_>,
+    ) -> Result<(), PipelineError> {
         context.response_mut().set_status(self.status);
         Ok(())
     }

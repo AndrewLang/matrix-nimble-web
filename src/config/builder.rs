@@ -1,4 +1,4 @@
-﻿use std::collections::HashMap;
+use std::collections::HashMap;
 
 use crate::config::config::Configuration;
 use crate::config::env::EnvConfigSource;
@@ -11,7 +11,9 @@ pub struct ConfigBuilder {
 
 impl ConfigBuilder {
     pub fn new() -> Self {
-        Self { sources: Vec::new() }
+        Self {
+            sources: Vec::new(),
+        }
     }
 
     pub fn with_json<P: AsRef<std::path::Path>>(mut self, path: P) -> Self {

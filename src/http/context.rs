@@ -6,6 +6,7 @@ use crate::config::Configuration;
 use crate::di::ServiceProvider;
 use crate::http::request::HttpRequest;
 use crate::http::response::HttpResponse;
+use crate::routing::route_data::RouteData;
 
 pub struct HttpContext {
     request: HttpRequest,
@@ -13,6 +14,7 @@ pub struct HttpContext {
     services: ServiceProvider,
     config: Arc<Configuration>,
     items: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
+    route: Option<RouteData>,
 }
 
 impl HttpContext {
@@ -25,6 +27,7 @@ impl HttpContext {
             services,
             config: Arc::new(config),
             items: HashMap::new(),
+            route: None,
         }
     }
 
@@ -46,6 +49,14 @@ impl HttpContext {
 
     pub fn config(&self) -> &Configuration {
         &self.config
+    }
+
+    pub fn route(&self) -> Option<&RouteData> {
+        self.route.as_ref()
+    }
+
+    pub fn set_route(&mut self, route: RouteData) {
+        self.route = Some(route);
     }
 
     pub fn insert<T>(&mut self, value: T)

@@ -1,4 +1,4 @@
-﻿use std::env;
+use std::env;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
@@ -40,7 +40,9 @@ fn data_path(name: &str) -> PathBuf {
 
 fn env_lock() -> MutexGuard<'static, ()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(())).lock().expect("env lock")
+    LOCK.get_or_init(|| Mutex::new(()))
+        .lock()
+        .expect("env lock")
 }
 
 #[test]
