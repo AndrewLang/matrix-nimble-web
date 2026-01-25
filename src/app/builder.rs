@@ -1,6 +1,11 @@
-﻿use crate::app::application::Application;
+use std::sync::Arc;
+
+use crate::app::application::Application;
+use crate::background::hosted_service::{HostedService, HostedServiceHost};
+use crate::background::job_queue::JobQueue;
 use crate::controller::controller::Controller;
 use crate::controller::registry::ControllerRegistry;
+use crate::di::ServiceContainer;
 use crate::pipeline::middleware::Middleware;
 use crate::pipeline::pipeline::Pipeline;
 use crate::routing::router::Router;
@@ -13,6 +18,9 @@ pub struct AppBuilder {
     pipeline: Pipeline,
     controller_registry: ControllerRegistry,
     router: SimpleRouter,
+    services: ServiceContainer,
+    hosted_services: HostedServiceHost,
+    job_queue: Option<Arc<dyn JobQueue>>,
 }
 
 impl AppBuilder {
@@ -21,6 +29,9 @@ impl AppBuilder {
             pipeline: Pipeline::new(),
             controller_registry: ControllerRegistry::new(),
             router: SimpleRouter::new(),
+            services: ServiceContainer::new(),
+            hosted_services: HostedServiceHost::new(),
+            job_queue: None,
         }
     }
 
@@ -64,7 +75,24 @@ impl AppBuilder {
         self
     }
 
+    pub fn add_hosted_service<T: HostedService>(&mut self, service: T) -> &mut Self {
+        self.hosted_services.add(service);
+        self
+    }
+
+    pub fn add_job_queue<T>(&mut self, queue: T) -> &mut Self
+    where
+        T: JobQueue + 'static,
+    {
+        let queue = Arc::new(queue) as Arc<dyn JobQueue>;
+        self.job_queue = Some(queue.clone());
+        self.services
+            .register_singleton::<Arc<dyn JobQueue>, _>(move |_| queue.clone());
+        self
+    }
+
     pub fn build(self) -> Application {
-        Application::new(self.pipeline)
+        let services = self.services.build();
+        Application::new(self.pipeline, services, self.hosted_services, self.job_queue)
     }
 }

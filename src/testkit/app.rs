@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
 use crate::app::builder::AppBuilder;
+use crate::background::in_memory_queue::InMemoryJobQueue;
 use crate::controller::controller::Controller;
 use crate::controller::registry::ControllerRegistry;
+use crate::di::ServiceContainer;
 use crate::http::request::HttpRequest;
 use crate::http::response::HttpResponse;
 use crate::middleware::endpoint_exec::EndpointExecutionMiddleware;
@@ -17,6 +19,7 @@ pub struct TestApp {
     builder: Option<AppBuilder>,
     controller_registry: ControllerRegistry,
     router: SimpleRouter,
+    background_queue: Option<Arc<InMemoryJobQueue>>,
 }
 
 impl TestApp {
@@ -25,6 +28,7 @@ impl TestApp {
             builder: Some(AppBuilder::new()),
             controller_registry: ControllerRegistry::new(),
             router: SimpleRouter::new(),
+            background_queue: None,
         }
     }
 
@@ -62,6 +66,9 @@ impl TestApp {
 
     pub fn run(self, request: HttpRequest) -> HttpResponse {
         let mut builder = self.builder.expect("test app builder");
+        if let Some(queue) = self.background_queue {
+            builder.add_job_queue(queue.as_ref().clone());
+        }
         if !self.controller_registry.routes().is_empty() {
             let mut controller_registry = self.controller_registry;
             let mut router = self.router;
@@ -81,5 +88,15 @@ impl TestApp {
 
     pub async fn run_async(self, request: HttpRequest) -> HttpResponse {
         self.run(request)
+    }
+
+    pub(crate) fn ensure_background_queue(&mut self) -> Arc<InMemoryJobQueue> {
+        if let Some(queue) = self.background_queue.as_ref() {
+            return queue.clone();
+        }
+        let services = Arc::new(ServiceContainer::new().build());
+        let queue = Arc::new(InMemoryJobQueue::new(services));
+        self.background_queue = Some(queue.clone());
+        queue
     }
 }

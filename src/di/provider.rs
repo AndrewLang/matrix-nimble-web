@@ -12,6 +12,16 @@ pub struct ServiceProvider {
     scoped: Arc<Mutex<HashMap<TypeId, Arc<dyn Any + Send + Sync>>>>,
 }
 
+impl Clone for ServiceProvider {
+    fn clone(&self) -> Self {
+        Self {
+            registrations: Arc::clone(&self.registrations),
+            singletons: Arc::clone(&self.singletons),
+            scoped: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+}
+
 impl Default for ServiceProvider {
     fn default() -> Self {
         Self::from_registrations(HashMap::new())
