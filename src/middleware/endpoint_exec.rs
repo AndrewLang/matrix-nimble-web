@@ -18,7 +18,8 @@ impl Middleware for EndpointExecutionMiddleware {
         if let Some(endpoint) = context.endpoint().cloned() {
             match endpoint.kind() {
                 EndpointKind::Http(handler) => {
-                    handler.invoke(context).await?;
+                    let value = handler.invoke(context).await?;
+                    value.apply(context);
                 }
                 EndpointKind::WebSocket(_handler) => {}
             }

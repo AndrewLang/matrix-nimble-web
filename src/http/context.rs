@@ -7,6 +7,7 @@ use crate::di::ServiceProvider;
 use crate::endpoint::endpoint::Endpoint;
 use crate::http::request::HttpRequest;
 use crate::http::response::HttpResponse;
+use crate::result::into_response::ResponseValue;
 use crate::routing::route_data::RouteData;
 
 pub struct HttpContext {
@@ -17,6 +18,7 @@ pub struct HttpContext {
     items: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
     route: Option<RouteData>,
     endpoint: Option<Endpoint>,
+    response_value: Option<ResponseValue>,
 }
 
 impl HttpContext {
@@ -31,6 +33,7 @@ impl HttpContext {
             items: HashMap::new(),
             route: None,
             endpoint: None,
+            response_value: None,
         }
     }
 
@@ -68,6 +71,13 @@ impl HttpContext {
 
     pub fn set_endpoint(&mut self, endpoint: Endpoint) {
         self.endpoint = Some(endpoint);
+    }
+
+    pub fn set_response_value<T>(&mut self, value: T)
+    where
+        T: crate::result::IntoResponse + Send + Sync + 'static,
+    {
+        self.response_value = Some(ResponseValue::new(value));
     }
 
     pub fn insert<T>(&mut self, value: T)

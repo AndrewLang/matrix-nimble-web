@@ -8,11 +8,13 @@ use nimble_web::endpoint::kind::{EndpointKind, HttpEndpointHandler, WebSocketHan
 use nimble_web::endpoint::metadata::EndpointMetadata;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
+use nimble_web::http::response::HttpResponse;
 use nimble_web::middleware::endpoint_exec::EndpointExecutionMiddleware;
 use nimble_web::middleware::routing::RoutingMiddleware;
 use nimble_web::pipeline::middleware::Middleware;
 use nimble_web::pipeline::next::Next;
 use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
+use nimble_web::result::into_response::ResponseValue;
 use nimble_web::routing::route::Route;
 use nimble_web::routing::router::Router;
 use nimble_web::routing::simple_router::SimpleRouter;
@@ -44,10 +46,11 @@ struct RecordingEndpoint {
 }
 
 impl HttpHandler for RecordingEndpoint {
-    async fn invoke(&self, context: &mut HttpContext) -> Result<(), PipelineError> {
+    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         self.trace.push("handled");
-        context.response_mut().set_status(self.status);
-        Ok(())
+        let mut response = HttpResponse::new();
+        response.set_status(self.status);
+        Ok(ResponseValue::new(response))
     }
 }
 
@@ -56,7 +59,7 @@ struct ParamEndpoint {
 }
 
 impl HttpHandler for ParamEndpoint {
-    async fn invoke(&self, context: &mut HttpContext) -> Result<(), PipelineError> {
+    async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         let id = context
             .route()
             .and_then(|route| route.params().get("id"))
@@ -65,14 +68,14 @@ impl HttpHandler for ParamEndpoint {
         if id == "123" {
             self.trace.push("id:123");
         }
-        Ok(())
+        Ok(ResponseValue::new(HttpResponse::new()))
     }
 }
 
 struct ErrorEndpoint;
 
 impl HttpHandler for ErrorEndpoint {
-    async fn invoke(&self, _context: &mut HttpContext) -> Result<(), PipelineError> {
+    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Err(PipelineError::message("boom"))
     }
 }

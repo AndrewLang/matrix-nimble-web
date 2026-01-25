@@ -1,5 +1,10 @@
-pub mod error;
-pub mod file;
+mod error;
+mod file;
 pub mod into_response;
-pub mod json;
-pub mod text;
+mod json;
+mod text;
+
+pub use error::HttpError;
+pub use file::FileResponse;
+pub use into_response::IntoResponse;
+pub use json::Json;
