@@ -5,4 +5,4 @@ pub mod file;
 pub mod source;
 
 pub use builder::ConfigBuilder;
-pub use config::Config;
+pub use config::Configuration;

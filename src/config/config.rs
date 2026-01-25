@@ -1,11 +1,11 @@
 ﻿use std::collections::HashMap;
 
 #[derive(Clone, Debug, Default)]
-pub struct Config {
+pub struct Configuration {
     values: HashMap<String, String>,
 }
 
-impl Config {
+impl Configuration {
     pub(crate) fn new(values: HashMap<String, String>) -> Self {
         Self { values }
     }

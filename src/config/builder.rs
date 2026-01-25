@@ -1,6 +1,6 @@
 ﻿use std::collections::HashMap;
 
-use crate::config::config::Config;
+use crate::config::config::Configuration;
 use crate::config::env::EnvConfigSource;
 use crate::config::file::FileSource;
 use crate::config::source::ConfigSource;
@@ -31,7 +31,7 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn build(self) -> Config {
+    pub fn build(self) -> Configuration {
         let mut values = HashMap::new();
         for source in self.sources {
             let next = source.load();
@@ -39,6 +39,6 @@ impl ConfigBuilder {
                 values.insert(key, value);
             }
         }
-        Config::new(values)
+        Configuration::new(values)
     }
 }
