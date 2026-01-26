@@ -19,8 +19,8 @@ impl Entity for Photo {
         "photo"
     }
 
-    fn plural_name() -> &'static str {
-        "photos"
+    fn plural_name() -> String {
+        "photos".to_string()
     }
 }
 
@@ -42,8 +42,8 @@ impl Entity for Album {
         "album"
     }
 
-    fn plural_name() -> &'static str {
-        "albums"
+    fn plural_name() -> String {
+        "albums".to_string()
     }
 }
 

@@ -54,8 +54,8 @@ impl Entity for PhotoEntity {
         "photo"
     }
 
-    fn plural_name() -> &'static str {
-        "photos"
+    fn plural_name() -> String {
+        "photos".to_string()
     }
 }
 

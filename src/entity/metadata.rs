@@ -5,7 +5,7 @@ use crate::entity::entity::Entity;
 #[derive(Debug, Clone)]
 pub struct EntityMetadata {
     name: &'static str,
-    plural_name: &'static str,
+    plural_name: String,
     id_type_name: &'static str,
 }
 
@@ -22,8 +22,8 @@ impl EntityMetadata {
         self.name
     }
 
-    pub fn plural_name(&self) -> &'static str {
-        self.plural_name
+    pub fn plural_name(&self) -> &str {
+        self.plural_name.as_str()
     }
 
     pub fn id_type_name(&self) -> &'static str {
