@@ -15,8 +15,8 @@ use crate::middleware::endpoint_exec::EndpointExecutionMiddleware;
 use crate::middleware::routing::RoutingMiddleware;
 use crate::pipeline::middleware::{DynMiddleware, Middleware};
 use crate::pipeline::pipeline::Pipeline;
-use crate::routing::router::Router;
 use crate::routing::default_router::DefaultRouter;
+use crate::routing::router::Router;
 use crate::security::auth::AuthenticationMiddleware;
 use crate::security::policy::AuthorizationMiddleware;
 use crate::validation::ValidationMiddleware;
@@ -144,6 +144,15 @@ impl AppBuilder {
 
     pub fn use_config<P: AsRef<Path>>(&mut self, path: P) -> &mut Self {
         let path = path.as_ref().to_path_buf();
+        let path = if path.is_absolute() {
+            path
+        } else {
+            let base = std::env::current_exe()
+                .ok()
+                .and_then(|exe| exe.parent().map(|parent| parent.to_path_buf()))
+                .unwrap_or_else(|| std::path::PathBuf::from("."));
+            base.join(path)
+        };
         let builder = std::mem::replace(&mut self.config_builder, ConfigBuilder::new());
         self.config_builder = builder.with_file(&path);
         self
@@ -216,4 +225,3 @@ impl AppBuilder {
         EntityRegistry::from_registry(&self.entity_registry)
     }
 }
-

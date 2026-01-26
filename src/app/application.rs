@@ -79,6 +79,10 @@ impl Application {
         &self.services
     }
 
+    pub fn config(&self) -> &Configuration {
+        &self.config
+    }
+
     pub(crate) fn create_context(&self, request: HttpRequest) -> HttpContext {
         let services = self.services.clone();
         HttpContext::new(request, services, self.config.clone())

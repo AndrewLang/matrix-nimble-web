@@ -53,6 +53,8 @@ impl JsonFileSource {
 
 impl ConfigSource for JsonFileSource {
     fn load(&self) -> HashMap<String, String> {
+        log::debug!("Loading configuration from JSON file: {:?}", self.path);
+
         let content = fs::read_to_string(&self.path).expect("json file read failed");
         let content = content.trim_start_matches('\u{feff}');
         let value: Value = serde_json::from_str(content).expect("json parse failed");

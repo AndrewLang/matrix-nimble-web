@@ -223,6 +223,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app = builder.build();
 
+    let config = app.config();
+    log::info!("Application configuration: {:?}", config);
+
     app.start().await?;
 
     Ok(())

@@ -1,1 +1,11 @@
-{}
+{
+    "ConnectionStrings": {
+        "DefaultConnection": "Host=localhost;Port=5432;Database=mrp;Username=mrp_user;Password=mrp_dev_password"
+    },
+    "Jwt": {
+        "Key": "jwt_signing_key_20260108",
+        "Issuer": "mrp-issuer",
+        "Audience": "mrp-audience",
+        "AccessTokenMinutes": 60
+    }
+}
