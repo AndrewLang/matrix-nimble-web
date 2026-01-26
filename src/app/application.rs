@@ -84,11 +84,11 @@ impl Application {
         HttpContext::new(request, services, self.config.clone())
     }
 
-    pub(crate) fn handle_context(&self, context: &mut HttpContext) {
+    pub(crate) fn handle_request_context(&self, context: &mut HttpContext) {
         let _ = self.pipeline.run(context);
     }
 
-    pub fn handle_http(&self, request: HttpRequest) -> HttpResponse {
+    pub fn handle_http_request(&self, request: HttpRequest) -> HttpResponse {
         log::debug!(
             "Handling HTTP request: {} {}",
             request.method(),
@@ -96,7 +96,7 @@ impl Application {
         );
 
         let mut context = self.create_context(request);
-        self.handle_context(&mut context);
+        self.handle_request_context(&mut context);
         context.response().clone()
     }
 

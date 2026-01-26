@@ -16,7 +16,7 @@ use crate::middleware::routing::RoutingMiddleware;
 use crate::pipeline::middleware::{DynMiddleware, Middleware};
 use crate::pipeline::pipeline::Pipeline;
 use crate::routing::router::Router;
-use crate::routing::simple_router::SimpleRouter;
+use crate::routing::default_router::DefaultRouter;
 use crate::security::auth::AuthenticationMiddleware;
 use crate::security::policy::AuthorizationMiddleware;
 use crate::validation::ValidationMiddleware;
@@ -24,7 +24,7 @@ use crate::validation::ValidationMiddleware;
 pub struct AppBuilder {
     pipeline: Pipeline,
     controller_registry: ControllerRegistry,
-    router: SimpleRouter,
+    router: DefaultRouter,
     services: ServiceContainer,
     hosted_services: HostedServiceHost,
     job_queue: JobQueueConfig,
@@ -44,7 +44,7 @@ impl AppBuilder {
         Self {
             pipeline: Pipeline::new(),
             controller_registry: ControllerRegistry::new(),
-            router: SimpleRouter::new(),
+            router: DefaultRouter::new(),
             services: ServiceContainer::new(),
             hosted_services: HostedServiceHost::new(),
             job_queue: JobQueueConfig::None,
@@ -216,3 +216,4 @@ impl AppBuilder {
         EntityRegistry::from_registry(&self.entity_registry)
     }
 }
+

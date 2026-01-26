@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::io;
 
 pub trait ResponseBodyStream: Send {
@@ -12,8 +12,8 @@ pub enum ResponseBody {
     Stream(Box<dyn ResponseBodyStream>),
 }
 
-impl fmt::Debug for ResponseBody {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Debug for ResponseBody {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             ResponseBody::Empty => f.write_str("ResponseBody::Empty"),
             ResponseBody::Bytes(bytes) => {

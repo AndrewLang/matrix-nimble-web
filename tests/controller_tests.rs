@@ -20,7 +20,7 @@ use nimble_web::result::into_response::ResponseValue;
 use nimble_web::result::HttpError;
 use nimble_web::routing::route::Route;
 use nimble_web::routing::router::Router;
-use nimble_web::routing::simple_router::SimpleRouter;
+use nimble_web::routing::default_router::DefaultRouter;
 
 #[derive(Clone)]
 struct Trace {
@@ -156,7 +156,7 @@ fn controller_action_invocation_populates_response() {
     let mut registry = ControllerRegistry::new();
     registry.register::<TestController>();
 
-    let mut router = SimpleRouter::new();
+    let mut router = DefaultRouter::new();
     for route in registry.routes() {
         router.add_route(route.clone());
     }
@@ -184,7 +184,7 @@ fn route_params_passed_to_controller() {
     let mut registry = ControllerRegistry::new();
     registry.register::<ParamController>();
 
-    let mut router = SimpleRouter::new();
+    let mut router = DefaultRouter::new();
     for route in registry.routes() {
         router.add_route(route.clone());
     }
@@ -222,7 +222,7 @@ fn controller_error_propagates() {
     let mut registry = ControllerRegistry::new();
     registry.register::<ErrorController>();
 
-    let mut router = SimpleRouter::new();
+    let mut router = DefaultRouter::new();
     for route in registry.routes() {
         router.add_route(route.clone());
     }
@@ -239,3 +239,4 @@ fn controller_error_propagates() {
     assert!(result.is_ok());
     assert_eq!(context.response().status(), 404);
 }
+

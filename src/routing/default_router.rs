@@ -3,11 +3,11 @@ use crate::routing::route::Route;
 use crate::routing::route_data::RouteData;
 use crate::routing::router::Router;
 
-pub struct SimpleRouter {
+pub struct DefaultRouter {
     routes: Vec<Route>,
 }
 
-impl SimpleRouter {
+impl DefaultRouter {
     pub fn new() -> Self {
         Self { routes: Vec::new() }
     }
@@ -23,7 +23,7 @@ impl SimpleRouter {
     }
 }
 
-impl Router for SimpleRouter {
+impl Router for DefaultRouter {
     fn add_route(&mut self, route: Route) {
         self.routes.push(route);
     }

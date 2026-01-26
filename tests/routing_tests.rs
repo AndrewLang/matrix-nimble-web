@@ -1,11 +1,11 @@
 use nimble_web::http::request::HttpRequest;
 use nimble_web::routing::route::Route;
 use nimble_web::routing::router::Router;
-use nimble_web::routing::simple_router::SimpleRouter;
+use nimble_web::routing::default_router::DefaultRouter;
 
 #[test]
 fn static_route_match() {
-    let mut router = SimpleRouter::new();
+    let mut router = DefaultRouter::new();
     router.add_route(Route::new("GET", "/photos"));
 
     let request = HttpRequest::new("GET", "/photos");
@@ -16,7 +16,7 @@ fn static_route_match() {
 
 #[test]
 fn parameter_route_match() {
-    let mut router = SimpleRouter::new();
+    let mut router = DefaultRouter::new();
     router.add_route(Route::new("GET", "/photos/{id}"));
 
     let request = HttpRequest::new("GET", "/photos/123");
@@ -28,7 +28,7 @@ fn parameter_route_match() {
 
 #[test]
 fn method_mismatch_returns_none() {
-    let mut router = SimpleRouter::new();
+    let mut router = DefaultRouter::new();
     router.add_route(Route::new("POST", "/photos"));
 
     let request = HttpRequest::new("GET", "/photos");
@@ -39,7 +39,7 @@ fn method_mismatch_returns_none() {
 
 #[test]
 fn path_mismatch_returns_none() {
-    let mut router = SimpleRouter::new();
+    let mut router = DefaultRouter::new();
     router.add_route(Route::new("GET", "/photos"));
 
     let request = HttpRequest::new("GET", "/albums");
@@ -50,7 +50,7 @@ fn path_mismatch_returns_none() {
 
 #[test]
 fn multiple_routes_match_correct_one() {
-    let mut router = SimpleRouter::new();
+    let mut router = DefaultRouter::new();
     router.add_route(Route::new("GET", "/photos"));
     router.add_route(Route::new("GET", "/photos/{id}"));
     router.add_route(Route::new("GET", "/albums/{id}"));
@@ -64,10 +64,11 @@ fn multiple_routes_match_correct_one() {
 
 #[test]
 fn no_routes_registered_returns_none() {
-    let router = SimpleRouter::new();
+    let router = DefaultRouter::new();
     let request = HttpRequest::new("GET", "/photos");
 
     let matched = router.match_request(&request);
 
     assert!(matched.is_none());
 }
+

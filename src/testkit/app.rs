@@ -49,7 +49,7 @@ impl TestApp {
             builder.add_job_queue(queue.as_ref().clone());
         }
         let app = builder.build();
-        app.handle_http(request)
+        app.handle_http_request(request)
     }
 
     pub async fn run_async(self, request: HttpRequest) -> HttpResponse {

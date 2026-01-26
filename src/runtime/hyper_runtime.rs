@@ -49,7 +49,7 @@ impl HyperRuntime {
             request.set_body(RequestBody::Bytes(bytes.to_vec()));
         }
 
-        let response = app.handle_http(request);
+        let response = app.handle_http_request(request);
         log::debug!("Response {} {} -> {}", method, path, response.status());
         Self::to_hyper_response(response)
     }

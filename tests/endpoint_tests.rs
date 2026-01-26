@@ -17,7 +17,7 @@ use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
 use nimble_web::result::into_response::ResponseValue;
 use nimble_web::routing::route::Route;
 use nimble_web::routing::router::Router;
-use nimble_web::routing::simple_router::SimpleRouter;
+use nimble_web::routing::default_router::DefaultRouter;
 
 #[derive(Clone)]
 struct Trace {
@@ -202,7 +202,7 @@ fn endpoint_executes_after_routing_and_sees_params() {
         trace: trace.clone(),
     };
 
-    let mut router = SimpleRouter::new();
+    let mut router = DefaultRouter::new();
     router.add_route(Route::new("GET", "/photos/{id}"));
 
     let mut context = make_context("GET", "/photos/123");
@@ -246,3 +246,4 @@ fn endpoint_error_propagates_and_stops_pipeline() {
     assert!(matches!(result, Err(PipelineError::Message(msg)) if msg == "boom"));
     assert_eq!(trace.snapshot(), Vec::<&'static str>::new());
 }
+

@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::sync::{Arc, Mutex};
 
 pub trait RequestBodyStream: Send {
@@ -15,8 +15,8 @@ pub enum RequestBody {
     Stream(RequestBodyStreamHandle),
 }
 
-impl fmt::Debug for RequestBody {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Debug for RequestBody {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             RequestBody::Empty => f.write_str("Empty"),
             RequestBody::Bytes(bytes) => f.debug_tuple("Bytes").field(bytes).finish(),

@@ -18,12 +18,12 @@ impl ResponseValue {
     where
         T: IntoResponse + Send + 'static,
     {
-        fn respond<T>(value: Box<dyn Any + Send>, ctx: &mut HttpContext)
+        fn respond<T>(value: Box<dyn Any + Send>, context: &mut HttpContext)
         where
             T: IntoResponse + Send + 'static,
         {
             let value = *value.downcast::<T>().expect("response value type mismatch");
-            value.into_response(ctx);
+            value.into_response(context);
         }
 
         Self {
