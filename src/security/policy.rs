@@ -1,8 +1,8 @@
 use crate::http::context::HttpContext;
+use crate::identity::context::IdentityContext;
 use crate::pipeline::middleware::Middleware;
 use crate::pipeline::next::Next;
 use crate::pipeline::pipeline::PipelineError;
-use crate::security::auth::User;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Policy {
@@ -13,7 +13,9 @@ pub enum Policy {
 impl Policy {
     pub fn allows(&self, ctx: &HttpContext) -> bool {
         match self {
-            Policy::Authenticated => ctx.get::<User>().is_some(),
+            Policy::Authenticated => ctx
+                .get::<IdentityContext>()
+                .map_or(false, |identity| identity.is_authenticated()),
             Policy::Custom(_) => false,
         }
     }

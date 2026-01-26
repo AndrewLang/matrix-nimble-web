@@ -1,6 +1,6 @@
 use crate::http::context::HttpContext;
 use crate::http::request::HttpRequest;
-use crate::security::auth::User;
+use crate::identity::context::IdentityContext;
 
 pub trait WithAuth {
     fn with_auth(self, user_id: &str) -> Self;
@@ -16,7 +16,9 @@ impl WithAuth for HttpRequest {
 
 pub fn assert_authenticated(context: &HttpContext) {
     assert!(
-        context.get::<User>().is_some(),
+        context
+            .get::<IdentityContext>()
+            .map_or(false, |identity| identity.is_authenticated()),
         "expected authenticated user in context"
     );
 }

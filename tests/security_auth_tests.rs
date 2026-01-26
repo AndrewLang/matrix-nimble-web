@@ -8,10 +8,11 @@ use nimble_web::endpoint::kind::{EndpointKind, HttpEndpointHandler};
 use nimble_web::endpoint::metadata::EndpointMetadata;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
+use nimble_web::identity::context::IdentityContext;
 use nimble_web::middleware::endpoint_exec::EndpointExecutionMiddleware;
 use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
 use nimble_web::result::into_response::ResponseValue;
-use nimble_web::security::auth::{AuthenticationMiddleware, User};
+use nimble_web::security::auth::AuthenticationMiddleware;
 use nimble_web::security::policy::{AuthorizationMiddleware, Policy};
 
 #[derive(Clone)]
@@ -67,7 +68,10 @@ fn authentication_attaches_user() {
     let result = pipeline.run(&mut context);
 
     assert!(result.is_ok());
-    assert!(context.get::<User>().is_some());
+    let identity = context
+        .get::<IdentityContext>()
+        .expect("identity context inserted");
+    assert_eq!(identity.identity().subject(), "test-user");
 }
 
 #[test]
@@ -80,7 +84,10 @@ fn missing_auth_header_allows_pipeline_continue() {
     let result = pipeline.run(&mut context);
 
     assert!(result.is_ok());
-    assert!(context.get::<User>().is_none());
+    let identity = context
+        .get::<IdentityContext>()
+        .expect("identity context inserted");
+    assert!(!identity.is_authenticated());
 }
 
 #[test]

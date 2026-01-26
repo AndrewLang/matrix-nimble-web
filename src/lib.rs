@@ -7,6 +7,7 @@ pub mod di;
 pub mod endpoint;
 pub mod entity;
 pub mod http;
+pub mod identity;
 pub mod middleware;
 pub mod openapi;
 pub mod pipeline;
