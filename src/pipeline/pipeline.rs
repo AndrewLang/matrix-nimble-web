@@ -45,6 +45,14 @@ impl Pipeline {
         &self.middleware
     }
 
+    pub(crate) fn into_middleware(self) -> Vec<Box<dyn DynMiddleware>> {
+        self.middleware
+    }
+
+    pub(crate) fn from_middleware(middleware: Vec<Box<dyn DynMiddleware>>) -> Self {
+        Self { middleware }
+    }
+
     fn block_on<F: Future>(mut future: F) -> F::Output {
         let waker = unsafe { Waker::from_raw(Self::raw_waker()) };
         let mut context = Context::from_waker(&waker);

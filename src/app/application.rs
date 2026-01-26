@@ -55,7 +55,7 @@ impl Application {
         self.hosted_services.start(context);
 
         let runtime = HyperRuntime::new();
-        let shutdown = shutdown_signal();
+        let shutdown = Self::shutdown_signal();
         let app = Arc::new(self);
 
         log::debug!("Starting runtime...");
@@ -118,6 +118,23 @@ impl Application {
             runner.run_pending_jobs();
         }
     }
+
+    async fn shutdown_signal() {
+        #[cfg(unix)]
+        {
+            use tokio::signal::unix::{signal, SignalKind};
+            let mut terminate = signal(SignalKind::terminate()).expect("signal handler");
+            tokio::select! {
+                _ = tokio::signal::ctrl_c() => {},
+                _ = terminate.recv() => {},
+            }
+        }
+
+        #[cfg(not(unix))]
+        {
+            let _ = tokio::signal::ctrl_c().await;
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -144,20 +161,3 @@ impl Display for AppError {
 }
 
 impl Error for AppError {}
-
-async fn shutdown_signal() {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{signal, SignalKind};
-        let mut terminate = signal(SignalKind::terminate()).expect("signal handler");
-        tokio::select! {
-            _ = tokio::signal::ctrl_c() => {},
-            _ = terminate.recv() => {},
-        }
-    }
-
-    #[cfg(not(unix))]
-    {
-        let _ = tokio::signal::ctrl_c().await;
-    }
-}

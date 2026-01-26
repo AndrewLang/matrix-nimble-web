@@ -2,13 +2,16 @@ use std::sync::Arc;
 
 use crate::app::application::Application;
 use crate::background::hosted_service::{HostedService, HostedServiceHost};
+use crate::background::in_memory_queue::InMemoryJobQueue;
 use crate::background::job_queue::JobQueue;
 use crate::controller::controller::Controller;
 use crate::controller::registry::ControllerRegistry;
 use crate::di::ServiceContainer;
 use crate::entity::entity::Entity;
 use crate::entity::registry::EntityRegistry;
-use crate::pipeline::middleware::Middleware;
+use crate::middleware::endpoint_exec::EndpointExecutionMiddleware;
+use crate::middleware::routing::RoutingMiddleware;
+use crate::pipeline::middleware::{DynMiddleware, Middleware};
 use crate::pipeline::pipeline::Pipeline;
 use crate::routing::router::Router;
 use crate::routing::simple_router::SimpleRouter;
@@ -22,9 +25,15 @@ pub struct AppBuilder {
     router: SimpleRouter,
     services: ServiceContainer,
     hosted_services: HostedServiceHost,
-    job_queue: Option<Arc<dyn JobQueue>>,
+    job_queue: JobQueueConfig,
     entity_registry: EntityRegistry,
     address: Option<String>,
+}
+
+enum JobQueueConfig {
+    None,
+    Provided(Arc<dyn JobQueue>),
+    InMemory,
 }
 
 impl AppBuilder {
@@ -35,7 +44,7 @@ impl AppBuilder {
             router: SimpleRouter::new(),
             services: ServiceContainer::new(),
             hosted_services: HostedServiceHost::new(),
-            job_queue: None,
+            job_queue: JobQueueConfig::None,
             entity_registry: EntityRegistry::new(),
             address: None,
         }
@@ -91,9 +100,18 @@ impl AppBuilder {
         T: JobQueue + 'static,
     {
         let queue = Arc::new(queue) as Arc<dyn JobQueue>;
-        self.job_queue = Some(queue.clone());
+        self.job_queue = JobQueueConfig::Provided(queue.clone());
         self.services
             .register_singleton::<Arc<dyn JobQueue>, _>(move |_| queue.clone());
+        self
+    }
+
+    pub fn use_in_memory_job_queue(&mut self) -> &mut Self {
+        self.job_queue = JobQueueConfig::InMemory;
+        self.services
+            .register_singleton::<Arc<dyn JobQueue>, _>(move |provider| {
+                Arc::new(InMemoryJobQueue::new(Arc::new(provider.clone())))
+            });
         self
     }
 
@@ -123,18 +141,44 @@ impl AppBuilder {
     pub fn build(self) -> Application {
         let AppBuilder {
             pipeline,
-            controller_registry: _,
-            router: _,
+            mut controller_registry,
+            mut router,
             mut services,
             hosted_services,
             job_queue,
             entity_registry,
             address,
         } = self;
-        let registry = Arc::new(entity_registry);
-        services.register_singleton::<Arc<EntityRegistry>, _>(move |_| registry.clone());
+
+        if controller_registry.ensure_openapi_endpoint() {
+            router.add_route(crate::routing::route::Route::new("GET", "/openapi.json"));
+        }
+        let has_routes = !controller_registry.routes().is_empty();
+        let controller_registry = Arc::new(controller_registry);
+        let entity_registry = Arc::new(entity_registry);
+        services.register_singleton::<Arc<EntityRegistry>, _>(move |_| entity_registry.clone());
         let services = services.build();
+        let job_queue = match job_queue {
+            JobQueueConfig::None => None,
+            JobQueueConfig::Provided(queue) => Some(queue),
+            JobQueueConfig::InMemory => services
+                .resolve::<Arc<dyn JobQueue>>()
+                .map(|queue| (*queue).clone()),
+        };
         let address = address.unwrap_or_else(|| "0.0.0.0:8080".to_string());
+        let pipeline = if has_routes {
+            let mut middleware: Vec<Box<dyn DynMiddleware>> = Vec::new();
+            middleware.push(Box::new(RoutingMiddleware::with_registry(
+                router,
+                Arc::clone(&controller_registry),
+            )));
+            middleware.extend(pipeline.into_middleware());
+            middleware.push(Box::new(EndpointExecutionMiddleware::new()));
+            Pipeline::from_middleware(middleware)
+        } else {
+            pipeline
+        };
+
         Application::new(pipeline, services, hosted_services, job_queue, address)
     }
 

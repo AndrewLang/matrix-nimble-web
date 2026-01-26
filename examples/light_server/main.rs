@@ -2,28 +2,21 @@ use std::error::Error;
 use std::sync::Arc;
 
 use nimble_web::app::builder::AppBuilder;
-use nimble_web::background::in_memory_queue::InMemoryJobQueue;
 use nimble_web::background::job::{BackgroundJob, JobContext, JobResult};
 use nimble_web::background::job_queue::JobQueue;
 use nimble_web::controller::controller::Controller;
 use nimble_web::controller::registry::ControllerRegistry;
-use nimble_web::di::ServiceContainer;
 use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::entity::entity::Entity;
 use nimble_web::http::context::HttpContext;
-use nimble_web::middleware::endpoint_exec::EndpointExecutionMiddleware;
-use nimble_web::middleware::routing::RoutingMiddleware;
 use nimble_web::openapi::OpenApiSchema;
 use nimble_web::openapi::Schema;
 use nimble_web::pipeline::pipeline::PipelineError;
 use nimble_web::result::into_response::ResponseValue;
 use nimble_web::result::Json;
-use nimble_web::routing::route::Route;
-use nimble_web::routing::router::Router;
-use nimble_web::routing::simple_router::SimpleRouter;
 use nimble_web::security::auth::User;
 use nimble_web::security::policy::Policy;
-use nimble_web::validation::{ContextValidator, ValidationError, ValidationMiddleware};
+use nimble_web::validation::{ContextValidator, ValidationError};
 
 fn init_logging() {
     let mut builder = env_logger::Builder::from_default_env();
@@ -216,42 +209,18 @@ impl BackgroundJob for CleanupJob {
 async fn main() -> Result<(), Box<dyn Error>> {
     init_logging();
 
-    let services = Arc::new(ServiceContainer::new().build());
-    let queue = InMemoryJobQueue::new(services);
-
     let mut builder = AppBuilder::new();
     builder
         .use_address_env("NIMBLE_ADDRESS")
-        .add_controller::<ApiController>()
         .use_authentication()
         .use_authorization()
-        .add_job_queue(queue)
+        .use_validation()
+        .use_in_memory_job_queue()
+        .add_controller::<ApiController>()
         .add_entity::<PhotoEntity>();
 
-    let mut controller_registry = ControllerRegistry::new();
-    controller_registry.register::<ApiController>();
-
-    let mut router = SimpleRouter::new();
-    for route in controller_registry.routes() {
-        router.add_route(route.clone());
-    }
-
-    if controller_registry.ensure_openapi_endpoint() {
-        router.add_route(Route::new("GET", "/openapi.json"));
-    }
-
-    router.log_routes();
-
-    let registry = Arc::new(controller_registry);
-    builder
-        .use_middleware(RoutingMiddleware::with_registry(
-            router,
-            Arc::clone(&registry),
-        ))
-        .use_middleware(ValidationMiddleware::new())
-        .use_middleware(EndpointExecutionMiddleware::new());
-
     let app = builder.build();
+
     app.start().await?;
 
     Ok(())
