@@ -1,9 +1,11 @@
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::app::application::Application;
 use crate::background::hosted_service::{HostedService, HostedServiceHost};
 use crate::background::in_memory_queue::InMemoryJobQueue;
 use crate::background::job_queue::JobQueue;
+use crate::config::ConfigBuilder;
 use crate::controller::controller::Controller;
 use crate::controller::registry::ControllerRegistry;
 use crate::di::ServiceContainer;
@@ -28,6 +30,7 @@ pub struct AppBuilder {
     job_queue: JobQueueConfig,
     entity_registry: EntityRegistry,
     address: Option<String>,
+    config_builder: ConfigBuilder,
 }
 
 enum JobQueueConfig {
@@ -47,6 +50,7 @@ impl AppBuilder {
             job_queue: JobQueueConfig::None,
             entity_registry: EntityRegistry::new(),
             address: None,
+            config_builder: ConfigBuilder::new(),
         }
     }
 
@@ -138,6 +142,23 @@ impl AppBuilder {
         self
     }
 
+    pub fn use_config<P: AsRef<Path>>(&mut self, path: P) -> &mut Self {
+        let path = path.as_ref().to_path_buf();
+        let builder = std::mem::replace(&mut self.config_builder, ConfigBuilder::new());
+        self.config_builder = builder.with_file(&path);
+        self
+    }
+
+    pub fn use_env(&mut self) -> &mut Self {
+        self.use_env_prefix("NIMBLE_")
+    }
+
+    pub fn use_env_prefix(&mut self, prefix: &str) -> &mut Self {
+        let builder = std::mem::replace(&mut self.config_builder, ConfigBuilder::new());
+        self.config_builder = builder.with_env(prefix);
+        self
+    }
+
     pub fn build(self) -> Application {
         let AppBuilder {
             pipeline,
@@ -148,6 +169,7 @@ impl AppBuilder {
             job_queue,
             entity_registry,
             address,
+            config_builder,
         } = self;
 
         if controller_registry.ensure_openapi_endpoint() {
@@ -179,7 +201,15 @@ impl AppBuilder {
             pipeline
         };
 
-        Application::new(pipeline, services, hosted_services, job_queue, address)
+        let config = config_builder.build();
+        Application::new(
+            pipeline,
+            services,
+            hosted_services,
+            job_queue,
+            address,
+            config,
+        )
     }
 
     pub(crate) fn entity_registry_clone(&self) -> EntityRegistry {

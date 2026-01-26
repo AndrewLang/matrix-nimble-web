@@ -211,6 +211,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mut builder = AppBuilder::new();
     builder
+        .use_config("web.config.json")
+        .use_env()
         .use_address_env("NIMBLE_ADDRESS")
         .use_authentication()
         .use_authorization()

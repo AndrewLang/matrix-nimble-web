@@ -7,7 +7,7 @@ use crate::background::hosted_service::{HostedServiceContext, HostedServiceHost}
 use crate::background::in_memory_queue::InMemoryJobQueue;
 use crate::background::job_queue::JobQueue;
 use crate::background::runner::JobQueueRunner;
-use crate::config::ConfigBuilder;
+use crate::config::Configuration;
 use crate::di::ServiceProvider;
 use crate::http::context::HttpContext;
 use crate::http::request::HttpRequest;
@@ -22,6 +22,7 @@ pub struct Application {
     hosted_services: HostedServiceHost,
     job_queue: Option<Arc<dyn JobQueue>>,
     address: String,
+    config: Configuration,
 }
 
 impl Application {
@@ -31,6 +32,7 @@ impl Application {
         hosted_services: HostedServiceHost,
         job_queue: Option<Arc<dyn JobQueue>>,
         address: String,
+        config: Configuration,
     ) -> Self {
         Self {
             pipeline,
@@ -38,6 +40,7 @@ impl Application {
             hosted_services,
             job_queue,
             address,
+            config,
         }
     }
 
@@ -78,8 +81,7 @@ impl Application {
 
     pub(crate) fn create_context(&self, request: HttpRequest) -> HttpContext {
         let services = self.services.clone();
-        let config = ConfigBuilder::new().build();
-        HttpContext::new(request, services, config)
+        HttpContext::new(request, services, self.config.clone())
     }
 
     pub(crate) fn handle_context(&self, context: &mut HttpContext) {
