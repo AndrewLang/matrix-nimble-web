@@ -121,6 +121,24 @@ impl HttpContext {
                     .map_err(|err| ValidationError::new(&err.to_string()))?;
                 serde_json::from_str(text).map_err(|err| ValidationError::new(&err.to_string()))
             }
+            crate::http::request_body::RequestBody::Stream(stream) => {
+                let mut collected = Vec::new();
+                let mut guard = stream.lock().map_err(|_| {
+                    ValidationError::new("request body stream lock error")
+                })?;
+                loop {
+                    match guard
+                        .read_chunk()
+                        .map_err(|err| ValidationError::new(&err.to_string()))?
+                    {
+                        Some(chunk) => collected.extend_from_slice(&chunk),
+                        None => break,
+                    }
+                }
+                let text = std::str::from_utf8(&collected)
+                    .map_err(|err| ValidationError::new(&err.to_string()))?;
+                serde_json::from_str(text).map_err(|err| ValidationError::new(&err.to_string()))
+            }
             crate::http::request_body::RequestBody::Empty => {
                 Err(ValidationError::new("empty request body"))
             }

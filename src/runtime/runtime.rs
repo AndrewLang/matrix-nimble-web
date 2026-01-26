@@ -5,14 +5,13 @@ use std::sync::Arc;
 
 use crate::app::application::AppError;
 use crate::app::application::Application;
-
 pub(crate) type RuntimeFuture<'a> = Pin<Box<dyn Future<Output = Result<(), AppError>> + Send + 'a>>;
 
 pub(crate) trait Runtime: Send + Sync {
-    fn run<'a>(
+    async fn run<'a>(
         &'a self,
         listener: TcpListener,
         app: Arc<Application>,
         shutdown: Pin<Box<dyn Future<Output = ()> + Send + 'a>>,
-    ) -> RuntimeFuture<'a>;
+    ) -> Result<(), AppError>;
 }

@@ -45,8 +45,10 @@ impl Application {
         let addr = self.parse_address()?;
         log::info!("Start application at {}", addr);
         let wants_random = addr.port() == 0;
-        let listener =
+        let mut listener =
             std::net::TcpListener::bind(addr).map_err(|err| AppError::runtime("bind", err))?;
+        listener.set_nonblocking(true);
+
         let local_addr = listener
             .local_addr()
             .map_err(|err| AppError::runtime("bind", err))?;
@@ -68,6 +70,8 @@ impl Application {
         let runtime = HyperRuntime::new();
         let shutdown = shutdown_signal();
         let app = Arc::new(self);
+
+        log::debug!("Starting runtime...");
         runtime
             .run(listener, Arc::clone(&app), Box::pin(shutdown))
             .await?;
@@ -85,6 +89,16 @@ impl Application {
         &self.services
     }
 
+    pub(crate) fn create_context(&self, request: HttpRequest) -> HttpContext {
+        let services = self.services.clone();
+        let config = ConfigBuilder::new().build();
+        HttpContext::new(request, services, config)
+    }
+
+    pub(crate) fn handle_context(&self, context: &mut HttpContext) {
+        let _ = self.pipeline.run(context);
+    }
+
     pub fn handle_http(&self, request: HttpRequest) -> HttpResponse {
         log::debug!(
             "Handling HTTP request: {} {}",
@@ -92,10 +106,8 @@ impl Application {
             request.path()
         );
 
-        let services = self.services.clone();
-        let config = ConfigBuilder::new().build();
-        let mut context = HttpContext::new(request, services, config);
-        let _ = self.pipeline.run(&mut context);
+        let mut context = self.create_context(request);
+        self.handle_context(&mut context);
         context.response().clone()
     }
 

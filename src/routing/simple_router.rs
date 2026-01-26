@@ -11,6 +11,16 @@ impl SimpleRouter {
     pub fn new() -> Self {
         Self { routes: Vec::new() }
     }
+
+    pub fn routes(&self) -> &Vec<Route> {
+        &self.routes
+    }
+
+    pub fn log_routes(&self) {
+        for route in &self.routes {
+            log::info!("Route: {} {}", route.method(), route.path());
+        }
+    }
 }
 
 impl Router for SimpleRouter {

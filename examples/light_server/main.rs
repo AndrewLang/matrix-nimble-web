@@ -13,8 +13,8 @@ use nimble_web::entity::entity::Entity;
 use nimble_web::http::context::HttpContext;
 use nimble_web::middleware::endpoint_exec::EndpointExecutionMiddleware;
 use nimble_web::middleware::routing::RoutingMiddleware;
-use nimble_web::openapi::Schema;
 use nimble_web::openapi::OpenApiSchema;
+use nimble_web::openapi::Schema;
 use nimble_web::pipeline::pipeline::PipelineError;
 use nimble_web::result::into_response::ResponseValue;
 use nimble_web::result::Json;
@@ -182,7 +182,10 @@ impl HttpHandler for CreatePhotoHandler {
             queue.enqueue(Box::new(job));
         }
 
-        Ok(ResponseValue::new(Json(Photo { id: 1, name: payload.name })))
+        Ok(ResponseValue::new(Json(Photo {
+            id: 1,
+            name: payload.name,
+        })))
     }
 }
 
@@ -217,28 +220,36 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let queue = InMemoryJobQueue::new(services);
 
     let mut builder = AppBuilder::new();
-    builder.use_address_env("NIMBLE_ADDRESS");
-    builder.use_authentication();
-    builder.use_authorization();
-    builder.add_job_queue(queue);
-    builder.add_entity::<PhotoEntity>();
+    builder
+        .use_address_env("NIMBLE_ADDRESS")
+        .add_controller::<ApiController>()
+        .use_authentication()
+        .use_authorization()
+        .add_job_queue(queue)
+        .add_entity::<PhotoEntity>();
 
-    let mut registry = ControllerRegistry::new();
-    registry.register::<ApiController>();
+    let mut controller_registry = ControllerRegistry::new();
+    controller_registry.register::<ApiController>();
+
     let mut router = SimpleRouter::new();
-    for route in registry.routes() {
+    for route in controller_registry.routes() {
         router.add_route(route.clone());
     }
-    if registry.ensure_openapi_endpoint() {
+
+    if controller_registry.ensure_openapi_endpoint() {
         router.add_route(Route::new("GET", "/openapi.json"));
     }
-    let registry = Arc::new(registry);
-    builder.use_middleware(RoutingMiddleware::with_registry(
-        router,
-        Arc::clone(&registry),
-    ));
-    builder.use_middleware(ValidationMiddleware::new());
-    builder.use_middleware(EndpointExecutionMiddleware::new());
+
+    router.log_routes();
+
+    let registry = Arc::new(controller_registry);
+    builder
+        .use_middleware(RoutingMiddleware::with_registry(
+            router,
+            Arc::clone(&registry),
+        ))
+        .use_middleware(ValidationMiddleware::new())
+        .use_middleware(EndpointExecutionMiddleware::new());
 
     let app = builder.build();
     app.start().await?;
