@@ -1,5 +1,5 @@
-use nimble_web::app::builder::AppBuilder;
 use nimble_web::app::application::AppError;
+use nimble_web::app::builder::AppBuilder;
 
 #[tokio::test]
 async fn application_start_rejects_invalid_address() {

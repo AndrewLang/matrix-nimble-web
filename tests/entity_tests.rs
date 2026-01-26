@@ -1,6 +1,6 @@
 use nimble_web::entity::entity::Entity;
-use nimble_web::entity::registry::EntityRegistry;
 use nimble_web::entity::metadata::EntityMetadata;
+use nimble_web::entity::registry::EntityRegistry;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]

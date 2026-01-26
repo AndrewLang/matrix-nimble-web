@@ -1,6 +1,7 @@
 use nimble_web::data::paging::PageRequest;
 use nimble_web::data::query::{
-    Aggregate, AggregateFunction, Filter, FilterOperator, GroupBy, Query, Sort, SortDirection, Value,
+    Aggregate, AggregateFunction, Filter, FilterOperator, GroupBy, Query, Sort, SortDirection,
+    Value,
 };
 use nimble_web::entity::entity::Entity;
 

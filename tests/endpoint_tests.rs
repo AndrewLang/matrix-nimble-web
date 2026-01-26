@@ -15,9 +15,9 @@ use nimble_web::pipeline::middleware::Middleware;
 use nimble_web::pipeline::next::Next;
 use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
 use nimble_web::result::into_response::ResponseValue;
+use nimble_web::routing::default_router::DefaultRouter;
 use nimble_web::routing::route::Route;
 use nimble_web::routing::router::Router;
-use nimble_web::routing::default_router::DefaultRouter;
 
 #[derive(Clone)]
 struct Trace {
@@ -246,4 +246,3 @@ fn endpoint_error_propagates_and_stops_pipeline() {
     assert!(matches!(result, Err(PipelineError::Message(msg)) if msg == "boom"));
     assert_eq!(trace.snapshot(), Vec::<&'static str>::new());
 }
-

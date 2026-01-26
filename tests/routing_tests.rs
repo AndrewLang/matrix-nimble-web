@@ -1,7 +1,7 @@
 use nimble_web::http::request::HttpRequest;
+use nimble_web::routing::default_router::DefaultRouter;
 use nimble_web::routing::route::Route;
 use nimble_web::routing::router::Router;
-use nimble_web::routing::default_router::DefaultRouter;
 
 #[test]
 fn static_route_match() {
@@ -78,4 +78,3 @@ fn log_routes_does_not_panic() {
     router.add_route(Route::new("GET", "/photos"));
     router.log_routes();
 }
-

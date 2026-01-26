@@ -1,5 +1,6 @@
-pub mod paging;
+pub mod memory_repository;
 pub mod mongo;
+pub mod paging;
 pub mod postgres;
 pub mod provider;
 pub mod query;

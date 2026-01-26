@@ -10,7 +10,11 @@ use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
 struct MarkerMiddleware;
 
 impl Middleware for MarkerMiddleware {
-    async fn handle(&self, context: &mut HttpContext, _next: Next<'_>) -> Result<(), PipelineError> {
+    async fn handle(
+        &self,
+        context: &mut HttpContext,
+        _next: Next<'_>,
+    ) -> Result<(), PipelineError> {
         context.insert::<u32>(7);
         Ok(())
     }

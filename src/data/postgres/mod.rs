@@ -26,7 +26,6 @@ pub struct PostgresProvider<E: Entity> {
     _marker: std::marker::PhantomData<E>,
 }
 
-
 impl<E: Entity> PostgresProvider<E> {
     pub fn new(pool: PgPool) -> Self {
         Self {
@@ -451,7 +450,11 @@ impl<E: Entity> PostgresProvider<E> {
         builder.push(&on.right);
     }
 
-    fn append_filters(&self, builder: &mut QueryBuilder<Postgres>, query: &Query<E>) -> DataResult<()> {
+    fn append_filters(
+        &self,
+        builder: &mut QueryBuilder<Postgres>,
+        query: &Query<E>,
+    ) -> DataResult<()> {
         if query.filters.is_empty() {
             return Ok(());
         }
@@ -466,7 +469,11 @@ impl<E: Entity> PostgresProvider<E> {
         Ok(())
     }
 
-    fn append_filter(&self, builder: &mut QueryBuilder<Postgres>, filter: &Filter) -> DataResult<()> {
+    fn append_filter(
+        &self,
+        builder: &mut QueryBuilder<Postgres>,
+        filter: &Filter,
+    ) -> DataResult<()> {
         let field = &filter.field;
         match filter.operator {
             FilterOperator::IsNull => {
@@ -522,7 +529,9 @@ impl<E: Entity> PostgresProvider<E> {
                     return Err(DataError::InvalidQuery("BETWEEN requires list".to_string()));
                 };
                 if values.len() != 2 {
-                    return Err(DataError::InvalidQuery("BETWEEN requires two values".to_string()));
+                    return Err(DataError::InvalidQuery(
+                        "BETWEEN requires two values".to_string(),
+                    ));
                 }
                 Self::bind_value(builder, values[0].clone());
                 builder.push(" AND ");

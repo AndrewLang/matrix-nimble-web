@@ -76,7 +76,10 @@ fn http_headers_iterates_inserted_values() {
 
     assert_eq!(
         collected,
-        vec![("x-one".to_string(), "1".to_string()), ("x-two".to_string(), "2".to_string())]
+        vec![
+            ("x-one".to_string(), "1".to_string()),
+            ("x-two".to_string(), "2".to_string())
+        ]
     );
     assert_eq!(headers.get("x-one"), Some("1"));
     assert_eq!(headers.get("missing"), None);

@@ -18,9 +18,9 @@ use nimble_web::middleware::routing::RoutingMiddleware;
 use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
 use nimble_web::result::into_response::ResponseValue;
 use nimble_web::result::HttpError;
+use nimble_web::routing::default_router::DefaultRouter;
 use nimble_web::routing::route::Route;
 use nimble_web::routing::router::Router;
-use nimble_web::routing::default_router::DefaultRouter;
 
 #[derive(Clone)]
 struct Trace {
@@ -239,4 +239,3 @@ fn controller_error_propagates() {
     assert!(result.is_ok());
     assert_eq!(context.response().status(), 404);
 }
-

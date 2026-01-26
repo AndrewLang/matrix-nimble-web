@@ -30,7 +30,6 @@ impl<E: Entity> Repository<E> {
     }
 }
 
-
 #[async_trait]
 impl<E: Entity> DataProvider<E> for Repository<E> {
     async fn create(&self, entity: E) -> DataResult<E> {
@@ -54,11 +53,7 @@ impl<E: Entity> DataProvider<E> for Repository<E> {
     }
 
     async fn query(&self, query: Query<E>) -> DataResult<crate::data::paging::Page<E>> {
-        log::debug!(
-            "repo.query {} ({})",
-            E::name(),
-            E::plural_name()
-        );
+        log::debug!("repo.query {} ({})", E::name(), E::plural_name());
         self.provider.query(query).await
     }
 }

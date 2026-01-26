@@ -135,8 +135,6 @@ fn http_context_empty_body_returns_validation_error() {
     let config = ConfigBuilder::new().build();
     let context = HttpContext::new(request, services, config);
 
-    let error: ValidationError = context
-        .read_json::<Payload>()
-        .expect_err("expected error");
+    let error: ValidationError = context.read_json::<Payload>().expect_err("expected error");
     assert_eq!(error.message(), "empty request body");
 }

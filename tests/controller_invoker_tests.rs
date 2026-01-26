@@ -11,9 +11,9 @@ use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
 use nimble_web::middleware::endpoint_exec::EndpointExecutionMiddleware;
 use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
+use nimble_web::result::into_response::ResponseValue;
 use nimble_web::routing::route::Route;
 use nimble_web::routing::route_data::RouteData;
-use nimble_web::result::into_response::ResponseValue;
 
 #[test]
 fn controller_invoker_handler_builds_endpoint_handler() {
@@ -31,7 +31,10 @@ fn controller_invoker_handler_builds_endpoint_handler() {
         ServiceContainer::new().build(),
         ConfigBuilder::new().build(),
     );
-    let endpoint = Endpoint::new(EndpointKind::Http(handler), EndpointMetadata::new("GET", "/hi"));
+    let endpoint = Endpoint::new(
+        EndpointKind::Http(handler),
+        EndpointMetadata::new("GET", "/hi"),
+    );
     context.set_endpoint(endpoint);
 
     let mut pipeline = Pipeline::new();
@@ -49,7 +52,10 @@ fn controller_invoker_handler_builds_endpoint_handler() {
 fn controller_invoker_middleware_sets_endpoint_from_registry() {
     let mut registry = ControllerRegistry::new();
     let metadata = EndpointMetadata::new("GET", "/items");
-    let endpoint = Endpoint::new(EndpointKind::Http(HttpEndpointHandler::new(NullHandler)), metadata);
+    let endpoint = Endpoint::new(
+        EndpointKind::Http(HttpEndpointHandler::new(NullHandler)),
+        metadata,
+    );
     let route = Route::new("GET", "/items");
     registry.add_route(route.clone(), endpoint.clone());
 
@@ -74,10 +80,7 @@ struct NullHandler;
 
 #[allow(async_fn_in_trait)]
 impl nimble_web::endpoint::http_handler::HttpHandler for NullHandler {
-    async fn invoke(
-        &self,
-        _context: &mut HttpContext,
-    ) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new(""))
     }
 }

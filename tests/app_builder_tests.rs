@@ -57,7 +57,10 @@ impl Controller for HelloController {
 struct HelloHandler;
 
 impl HttpHandler for HelloHandler {
-    async fn invoke(&self, _context: &mut nimble_web::http::context::HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(
+        &self,
+        _context: &mut nimble_web::http::context::HttpContext,
+    ) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new("hello"))
     }
 }

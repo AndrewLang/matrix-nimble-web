@@ -3,9 +3,9 @@ use std::sync::{Arc, Mutex};
 use nimble_web::background::hosted_service::{
     HostedService, HostedServiceContext, HostedServiceHost,
 };
+use nimble_web::background::in_memory_queue::InMemoryJobQueue;
 use nimble_web::background::job::{BackgroundJob, JobContext, JobResult};
 use nimble_web::background::job_queue::JobQueue;
-use nimble_web::background::in_memory_queue::InMemoryJobQueue;
 use nimble_web::background::runner::JobQueueRunner;
 use nimble_web::controller::controller::Controller;
 use nimble_web::controller::registry::ControllerRegistry;

@@ -1,4 +1,4 @@
-﻿use std::any::{Any, TypeId};
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -123,9 +123,9 @@ impl HttpContext {
             }
             crate::http::request_body::RequestBody::Stream(stream) => {
                 let mut collected = Vec::new();
-                let mut guard = stream.lock().map_err(|_| {
-                    ValidationError::new("request body stream lock error")
-                })?;
+                let mut guard = stream
+                    .lock()
+                    .map_err(|_| ValidationError::new("request body stream lock error"))?;
                 loop {
                     match guard
                         .read_chunk()

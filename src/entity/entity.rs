@@ -10,7 +10,8 @@ pub trait Entity: Send + Sync + 'static {
         let lower = name.to_ascii_lowercase();
         let bytes = lower.as_bytes();
         let ends_with = |suffix: &str| lower.ends_with(suffix);
-        if ends_with("s") || ends_with("x") || ends_with("z") || ends_with("ch") || ends_with("sh") {
+        if ends_with("s") || ends_with("x") || ends_with("z") || ends_with("ch") || ends_with("sh")
+        {
             return format!("{name}es");
         }
         if bytes.len() >= 2 && bytes[bytes.len() - 1] == b'y' {

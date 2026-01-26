@@ -2,8 +2,8 @@ use std::marker::PhantomData;
 
 use crate::data::paging::PageRequest;
 use crate::data::query::{
-    Aggregate, AggregateFunction, Filter, FilterOperator, GroupBy, Join, JoinOn, Query,
-    Sort, SortDirection, Value,
+    Aggregate, AggregateFunction, Filter, FilterOperator, GroupBy, Join, JoinOn, Query, Sort,
+    SortDirection, Value,
 };
 use crate::entity::entity::Entity;
 
@@ -76,24 +76,20 @@ impl<E: Entity> QueryBuilder<E> {
     }
 
     pub fn count(mut self) -> Self {
-        self.ensure_group_by()
-            .aggregates
-            .push(Aggregate {
-                function: AggregateFunction::Count,
-                field: "*".to_string(),
-                alias: None,
-            });
+        self.ensure_group_by().aggregates.push(Aggregate {
+            function: AggregateFunction::Count,
+            field: "*".to_string(),
+            alias: None,
+        });
         self
     }
 
     pub fn sum(mut self, field: &str) -> Self {
-        self.ensure_group_by()
-            .aggregates
-            .push(Aggregate {
-                function: AggregateFunction::Sum,
-                field: field.to_string(),
-                alias: None,
-            });
+        self.ensure_group_by().aggregates.push(Aggregate {
+            function: AggregateFunction::Sum,
+            field: field.to_string(),
+            alias: None,
+        });
         self
     }
 

@@ -5,7 +5,10 @@ use nimble_web::validation::{AnyValidator, ValidationError};
 struct AlwaysOkValidator;
 
 impl AnyValidator for AlwaysOkValidator {
-    fn validate(&self, _context: &nimble_web::http::context::HttpContext) -> Result<(), ValidationError> {
+    fn validate(
+        &self,
+        _context: &nimble_web::http::context::HttpContext,
+    ) -> Result<(), ValidationError> {
         Ok(())
     }
 }

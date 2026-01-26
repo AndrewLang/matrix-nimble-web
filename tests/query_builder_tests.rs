@@ -58,7 +58,11 @@ fn builder_starts_empty() {
 #[test]
 fn filter_chaining_preserves_order() {
     let query = QueryBuilder::<Photo>::new()
-        .filter("status", FilterOperator::Eq, Value::String("new".to_string()))
+        .filter(
+            "status",
+            FilterOperator::Eq,
+            Value::String("new".to_string()),
+        )
         .filter("size", FilterOperator::Gt, Value::Int(10))
         .build();
 
@@ -98,10 +102,7 @@ fn group_by_and_aggregates_added() {
 
 #[test]
 fn page_overrides_previous_paging() {
-    let query = QueryBuilder::<Photo>::new()
-        .page(1, 10)
-        .page(2, 25)
-        .build();
+    let query = QueryBuilder::<Photo>::new().page(1, 10).page(2, 25).build();
 
     assert_eq!(query.paging, Some(PageRequest::new(2, 25)));
 }

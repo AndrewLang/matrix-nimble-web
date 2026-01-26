@@ -72,8 +72,9 @@ impl MongoEntity for Album {
 }
 
 async fn test_database() -> mongodb::Database {
-    let mut options =
-        ClientOptions::parse("mongodb://127.0.0.1:1").await.expect("parse options");
+    let mut options = ClientOptions::parse("mongodb://127.0.0.1:1")
+        .await
+        .expect("parse options");
     options.server_selection_timeout = Some(Duration::from_millis(200));
     let client = Client::with_options(options).expect("client");
     client.database("nimble_test")
@@ -148,10 +149,25 @@ fn numeric_and_binary_filters_convert() {
     let Bson::Array(items) = filter.get("$and").expect("$and") else {
         panic!("expected array");
     };
-    assert!(matches!(items[0].as_document().unwrap().get("enabled"), Some(Bson::Boolean(true))));
-    let count = items[1].as_document().unwrap().get("count").unwrap().as_document().unwrap();
+    assert!(matches!(
+        items[0].as_document().unwrap().get("enabled"),
+        Some(Bson::Boolean(true))
+    ));
+    let count = items[1]
+        .as_document()
+        .unwrap()
+        .get("count")
+        .unwrap()
+        .as_document()
+        .unwrap();
     assert!(matches!(count.get("$gte"), Some(Bson::Int64(7))));
-    let ratio = items[2].as_document().unwrap().get("ratio").unwrap().as_document().unwrap();
+    let ratio = items[2]
+        .as_document()
+        .unwrap()
+        .get("ratio")
+        .unwrap()
+        .as_document()
+        .unwrap();
     assert!(matches!(ratio.get("$lt"), Some(Bson::Double(_))));
     let blob = items[3].as_document().unwrap().get("blob").unwrap();
     assert!(matches!(blob, Bson::Binary(_)));
@@ -278,9 +294,15 @@ fn like_and_text_filters_use_regex() {
     let tag = items[1].as_document().expect("tag doc");
     assert!(matches!(tag.get("tag"), Some(Bson::RegularExpression(_))));
     let prefix = items[2].as_document().expect("prefix doc");
-    assert!(matches!(prefix.get("prefix"), Some(Bson::RegularExpression(_))));
+    assert!(matches!(
+        prefix.get("prefix"),
+        Some(Bson::RegularExpression(_))
+    ));
     let suffix = items[3].as_document().expect("suffix doc");
-    assert!(matches!(suffix.get("suffix"), Some(Bson::RegularExpression(_))));
+    assert!(matches!(
+        suffix.get("suffix"),
+        Some(Bson::RegularExpression(_))
+    ));
 }
 
 #[test]
@@ -329,11 +351,25 @@ fn list_filters_build_in_and_between() {
     };
 
     let in_doc = items[0].as_document().expect("in doc");
-    assert!(in_doc.get("id").unwrap().as_document().unwrap().contains_key("$in"));
+    assert!(in_doc
+        .get("id")
+        .unwrap()
+        .as_document()
+        .unwrap()
+        .contains_key("$in"));
     let nin_doc = items[1].as_document().expect("nin doc");
-    assert!(nin_doc.get("id").unwrap().as_document().unwrap().contains_key("$nin"));
+    assert!(nin_doc
+        .get("id")
+        .unwrap()
+        .as_document()
+        .unwrap()
+        .contains_key("$nin"));
     let between_doc = items[2].as_document().expect("between doc");
-    let range = between_doc.get("created_at").unwrap().as_document().unwrap();
+    let range = between_doc
+        .get("created_at")
+        .unwrap()
+        .as_document()
+        .unwrap();
     assert!(range.contains_key("$gte"));
     assert!(range.contains_key("$lte"));
 }
@@ -359,7 +395,11 @@ fn null_filters_translate() {
     let is_null = items[0].as_document().expect("is null doc");
     assert_eq!(is_null.get("deleted_at"), Some(&Bson::Null));
     let is_not_null = items[1].as_document().expect("is not null doc");
-    let inner = is_not_null.get("archived_at").unwrap().as_document().unwrap();
+    let inner = is_not_null
+        .get("archived_at")
+        .unwrap()
+        .as_document()
+        .unwrap();
     assert!(inner.contains_key("$ne"));
 }
 
@@ -372,7 +412,10 @@ fn sort_doc_tracks_sorting() {
     });
 
     let sort = MongoProvider::<Photo>::build_sort_doc(&query);
-    let doc = sort.get("$sort").and_then(Bson::as_document).expect("sort doc");
+    let doc = sort
+        .get("$sort")
+        .and_then(Bson::as_document)
+        .expect("sort doc");
     assert_eq!(doc.get("created_at"), Some(&Bson::Int32(-1)));
 }
 

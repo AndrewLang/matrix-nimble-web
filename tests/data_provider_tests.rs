@@ -79,16 +79,17 @@ where
     }
 
     async fn delete(&self, id: &E::Id) -> DataResult<bool> {
-        Ok(self
-            .store
-            .lock()
-            .expect("store lock")
-            .remove(id)
-            .is_some())
+        Ok(self.store.lock().expect("store lock").remove(id).is_some())
     }
 
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>> {
-        let values: Vec<E> = self.store.lock().expect("store lock").values().cloned().collect();
+        let values: Vec<E> = self
+            .store
+            .lock()
+            .expect("store lock")
+            .values()
+            .cloned()
+            .collect();
         let total = values.len() as u64;
         let (page, page_size) = query
             .paging

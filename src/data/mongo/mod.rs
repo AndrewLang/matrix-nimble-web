@@ -11,7 +11,9 @@ use crate::data::query::{
 };
 use crate::entity::entity::Entity;
 
-pub trait MongoEntity: Entity + serde::Serialize + serde::de::DeserializeOwned + Send + Sync {
+pub trait MongoEntity:
+    Entity + serde::Serialize + serde::de::DeserializeOwned + Send + Sync
+{
     fn id_field() -> &'static str;
     fn id_bson(id: &Self::Id) -> Bson;
 }
@@ -21,7 +23,6 @@ pub struct MongoProvider<E: Entity> {
     schema: Option<String>,
     _marker: std::marker::PhantomData<E>,
 }
-
 
 impl<E: Entity> MongoProvider<E> {
     pub fn new(database: Database) -> Self {
@@ -49,7 +50,8 @@ impl<E: Entity> MongoProvider<E> {
     }
 
     fn collection(&self) -> Collection<Document> {
-        self.database.collection::<Document>(&self.collection_name())
+        self.database
+            .collection::<Document>(&self.collection_name())
     }
 
     pub fn collection_name_for_entity(schema: Option<&str>) -> String {
@@ -89,8 +91,8 @@ where
             .map_err(Self::map_mongo_error)?;
         match doc {
             Some(doc) => {
-                let entity =
-                    bson::from_document::<E>(doc).map_err(|err| DataError::Provider(err.to_string()))?;
+                let entity = bson::from_document::<E>(doc)
+                    .map_err(|err| DataError::Provider(err.to_string()))?;
                 Ok(Some(entity))
             }
             None => Ok(None),
@@ -139,8 +141,8 @@ where
 
         let mut items = Vec::new();
         while let Some(doc) = cursor.try_next().await.map_err(Self::map_mongo_error)? {
-            let entity =
-                bson::from_document::<E>(doc).map_err(|err| DataError::Provider(err.to_string()))?;
+            let entity = bson::from_document::<E>(doc)
+                .map_err(|err| DataError::Provider(err.to_string()))?;
             items.push(entity);
         }
 
@@ -168,8 +170,8 @@ where
 
         let mut items = Vec::new();
         while let Some(doc) = cursor.try_next().await.map_err(Self::map_mongo_error)? {
-            let entity =
-                bson::from_document::<E>(doc).map_err(|err| DataError::Provider(err.to_string()))?;
+            let entity = bson::from_document::<E>(doc)
+                .map_err(|err| DataError::Provider(err.to_string()))?;
             items.push(entity);
         }
 
@@ -321,7 +323,10 @@ where
         }
 
         let mut doc = Document::new();
-        doc.insert("$and", Bson::Array(clauses.into_iter().map(Bson::Document).collect()));
+        doc.insert(
+            "$and",
+            Bson::Array(clauses.into_iter().map(Bson::Document).collect()),
+        );
         Ok(doc)
     }
 
@@ -349,10 +354,7 @@ where
                 doc.insert(field, Bson::Document(inner));
                 return Ok(doc);
             }
-            FilterOperator::Gt
-            | FilterOperator::Gte
-            | FilterOperator::Lt
-            | FilterOperator::Lte => {
+            FilterOperator::Gt | FilterOperator::Gte | FilterOperator::Lt | FilterOperator::Lte => {
                 let mut inner = Document::new();
                 let op = match filter.operator {
                     FilterOperator::Gt => "$gt",
@@ -369,8 +371,10 @@ where
                 let Value::List(values) = &filter.value else {
                     return Err(DataError::InvalidQuery("IN requires list".to_string()));
                 };
-                let array: Vec<Bson> =
-                    values.iter().map(|v| Self::to_bson(v)).collect::<Result<_, _>>()?;
+                let array: Vec<Bson> = values
+                    .iter()
+                    .map(|v| Self::to_bson(v))
+                    .collect::<Result<_, _>>()?;
                 let mut inner = Document::new();
                 inner.insert(
                     if matches!(filter.operator, FilterOperator::In) {
@@ -388,7 +392,9 @@ where
                     return Err(DataError::InvalidQuery("BETWEEN requires list".to_string()));
                 };
                 if values.len() != 2 {
-                    return Err(DataError::InvalidQuery("BETWEEN requires two values".to_string()));
+                    return Err(DataError::InvalidQuery(
+                        "BETWEEN requires two values".to_string(),
+                    ));
                 }
                 let mut inner = Document::new();
                 inner.insert("$gte", Self::to_bson(&values[0])?);
@@ -399,16 +405,15 @@ where
             FilterOperator::Like => {
                 let pattern = match &filter.value {
                     Value::String(text) => Self::sql_like_to_regex(text),
-                    _ => {
-                        return Err(DataError::InvalidQuery(
-                            "LIKE requires string".to_string(),
-                        ))
-                    }
+                    _ => return Err(DataError::InvalidQuery("LIKE requires string".to_string())),
                 };
-                doc.insert(field, Bson::RegularExpression(Regex {
-                    pattern,
-                    options: String::new(),
-                }));
+                doc.insert(
+                    field,
+                    Bson::RegularExpression(Regex {
+                        pattern,
+                        options: String::new(),
+                    }),
+                );
                 return Ok(doc);
             }
             FilterOperator::Contains => {
@@ -481,7 +486,11 @@ where
         lookup.insert("foreignField", Bson::String(foreign_field));
         lookup.insert(
             "as",
-            Bson::String(join.alias.clone().unwrap_or_else(|| join.entity_name.clone())),
+            Bson::String(
+                join.alias
+                    .clone()
+                    .unwrap_or_else(|| join.entity_name.clone()),
+            ),
         );
 
         let mut stage = Document::new();
@@ -503,10 +512,7 @@ where
         }
 
         for (idx, agg) in group_by.aggregates.iter().enumerate() {
-            let key = agg
-                .alias
-                .clone()
-                .unwrap_or_else(|| format!("agg_{}", idx));
+            let key = agg.alias.clone().unwrap_or_else(|| format!("agg_{}", idx));
             let value = match agg.function {
                 AggregateFunction::Count => {
                     let mut doc = Document::new();
@@ -575,11 +581,7 @@ where
     }
 
     fn strip_prefix(value: &str) -> String {
-        value
-            .rsplit('.')
-            .next()
-            .unwrap_or(value)
-            .to_string()
+        value.rsplit('.').next().unwrap_or(value).to_string()
     }
 
     fn sql_like_to_regex(value: &str) -> String {
@@ -603,20 +605,9 @@ where
 
     fn regex_escape_char(ch: char) -> String {
         match ch {
-            '.'
-            | '+'
-            | '*'
-            | '?'
-            | '('
-            | ')'
-            | '['
-            | ']'
-            | '{'
-            | '}'
-            | '^'
-            | '$'
-            | '|'
-            | '\\' => format!("\\{}", ch),
+            '.' | '+' | '*' | '?' | '(' | ')' | '[' | ']' | '{' | '}' | '^' | '$' | '|' | '\\' => {
+                format!("\\{}", ch)
+            }
             _ => ch.to_string(),
         }
     }
