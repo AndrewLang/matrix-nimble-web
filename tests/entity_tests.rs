@@ -1,5 +1,6 @@
 use nimble_web::entity::entity::Entity;
 use nimble_web::entity::registry::EntityRegistry;
+use nimble_web::entity::metadata::EntityMetadata;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -47,6 +48,96 @@ impl Entity for Album {
     }
 }
 
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+struct City {
+    id: i64,
+}
+
+impl Entity for City {
+    type Id = i64;
+
+    fn id(&self) -> &Self::Id {
+        &self.id
+    }
+
+    fn name() -> &'static str {
+        "city"
+    }
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+struct Key {
+    id: i64,
+}
+
+impl Entity for Key {
+    type Id = i64;
+
+    fn id(&self) -> &Self::Id {
+        &self.id
+    }
+
+    fn name() -> &'static str {
+        "key"
+    }
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+struct BoxItem {
+    id: i64,
+}
+
+impl Entity for BoxItem {
+    type Id = i64;
+
+    fn id(&self) -> &Self::Id {
+        &self.id
+    }
+
+    fn name() -> &'static str {
+        "box"
+    }
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+struct Dish {
+    id: i64,
+}
+
+impl Entity for Dish {
+    type Id = i64;
+
+    fn id(&self) -> &Self::Id {
+        &self.id
+    }
+
+    fn name() -> &'static str {
+        "dish"
+    }
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+struct Class {
+    id: i64,
+}
+
+impl Entity for Class {
+    type Id = i64;
+
+    fn id(&self) -> &Self::Id {
+        &self.id
+    }
+
+    fn name() -> &'static str {
+        "class"
+    }
+}
+
 #[test]
 fn basic_entity_definition_exposes_names() {
     assert_eq!(Photo::name(), "photo");
@@ -85,4 +176,25 @@ fn registry_handles_multiple_entities() {
 
     assert_eq!(photo.name(), "photo");
     assert_eq!(album.name(), "album");
+}
+
+#[test]
+fn default_plural_name_handles_es_suffixes() {
+    assert_eq!(BoxItem::plural_name(), "boxes");
+    assert_eq!(Dish::plural_name(), "dishes");
+    assert_eq!(Class::plural_name(), "classes");
+}
+
+#[test]
+fn default_plural_name_handles_y_suffixes() {
+    assert_eq!(City::plural_name(), "cities");
+    assert_eq!(Key::plural_name(), "keys");
+}
+
+#[test]
+fn entity_metadata_includes_id_type_name() {
+    let metadata = EntityMetadata::of::<Photo>();
+    assert!(metadata.id_type_name().contains("i64"));
+    assert_eq!(metadata.name(), "photo");
+    assert_eq!(metadata.plural_name(), "photos");
 }

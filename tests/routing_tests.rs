@@ -72,3 +72,10 @@ fn no_routes_registered_returns_none() {
     assert!(matched.is_none());
 }
 
+#[test]
+fn log_routes_does_not_panic() {
+    let mut router = DefaultRouter::new();
+    router.add_route(Route::new("GET", "/photos"));
+    router.log_routes();
+}
+

@@ -5,6 +5,8 @@ use nimble_web::background::hosted_service::{
 };
 use nimble_web::background::job::{BackgroundJob, JobContext, JobResult};
 use nimble_web::background::job_queue::JobQueue;
+use nimble_web::background::in_memory_queue::InMemoryJobQueue;
+use nimble_web::background::runner::JobQueueRunner;
 use nimble_web::controller::controller::Controller;
 use nimble_web::controller::registry::ControllerRegistry;
 use nimble_web::di::ServiceContainer;
@@ -97,6 +99,59 @@ fn job_queue_runs_without_threads() {
 
     let snapshot = calls.lock().expect("calls lock").clone();
     assert_eq!(snapshot, vec!["job"]);
+}
+
+#[test]
+fn job_context_exposes_services_and_failure_variant() {
+    let services = Arc::new(ServiceContainer::new().build());
+    let ctx = JobContext::new(services.clone());
+    assert!(ctx.services().resolve::<u8>().is_none());
+
+    let failure = JobResult::Failure("failed".to_string());
+    match failure {
+        JobResult::Failure(message) => assert_eq!(message, "failed"),
+        JobResult::Success => panic!("expected failure"),
+    }
+}
+
+#[test]
+fn in_memory_job_queue_runs_jobs_and_returns_results() {
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let services = Arc::new(ServiceContainer::new().build());
+    let queue = InMemoryJobQueue::new(services);
+
+    queue.enqueue(Box::new(TestJob::new("first", calls.clone())));
+    queue.enqueue(Box::new(TestJob::new("second", calls.clone())));
+
+    let result = queue.run_next();
+    assert!(matches!(result, Some(JobResult::Success)));
+
+    let results = queue.run_all();
+    assert_eq!(results.len(), 1);
+
+    let snapshot = calls.lock().expect("calls lock").clone();
+    assert_eq!(snapshot, vec!["first", "second"]);
+}
+
+#[test]
+fn job_queue_runner_respects_accepting_state() {
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let services = Arc::new(ServiceContainer::new().build());
+    let queue = Arc::new(InMemoryJobQueue::new(services));
+    let runner = JobQueueRunner::new(queue.clone());
+
+    runner.stop();
+    runner.enqueue(Box::new(TestJob::new("ignored", calls.clone())));
+    let results = runner.run_pending_jobs();
+    assert!(results.is_empty());
+
+    runner.start(HostedServiceContext::new(ServiceContainer::new().build()));
+    runner.enqueue(Box::new(TestJob::new("accepted", calls.clone())));
+    let results = runner.run_pending_jobs();
+    assert_eq!(results.len(), 1);
+
+    let snapshot = calls.lock().expect("calls lock").clone();
+    assert_eq!(snapshot, vec!["accepted"]);
 }
 
 struct TestHostedService {

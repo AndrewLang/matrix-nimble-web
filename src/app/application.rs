@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::future::Future;
 use std::net::SocketAddr;
+use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::background::hosted_service::{HostedServiceContext, HostedServiceHost};
@@ -45,6 +47,14 @@ impl Application {
     }
 
     pub async fn start(self) -> Result<(), AppError> {
+        let shutdown = Box::pin(Self::shutdown_signal());
+        self.start_with_shutdown(shutdown).await
+    }
+
+    pub async fn start_with_shutdown(
+        self,
+        shutdown: Pin<Box<dyn Future<Output = ()> + Send>>,
+    ) -> Result<(), AppError> {
         let addr = self.parse_address()?;
         log::info!("Start application at {}", addr);
         let wants_random = addr.port() == 0;
@@ -58,12 +68,11 @@ impl Application {
         self.hosted_services.start(context);
 
         let runtime = HyperRuntime::new();
-        let shutdown = Self::shutdown_signal();
         let app = Arc::new(self);
 
         log::debug!("Starting runtime...");
         runtime
-            .run(addr, Arc::clone(&app), Box::pin(shutdown), wants_random)
+            .run(addr, Arc::clone(&app), shutdown, wants_random)
             .await?;
         log::info!("Shutting down application");
         app.shutdown();

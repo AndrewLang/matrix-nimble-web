@@ -131,6 +131,17 @@ async fn repository_delegates_calls() {
     assert_eq!(snapshot, vec!["create", "get", "update", "delete", "query"]);
 }
 
+#[test]
+fn repository_exposes_entity_names_and_provider() {
+    let provider = MockDataProvider::<TestEntity>::new();
+    let repo = Repository::new(Box::new(provider));
+
+    assert_eq!(repo.entity_name(), "test_entity");
+    assert_eq!(repo.entity_plural_name(), "test_entities".to_string());
+
+    let _ = repo.into_provider();
+}
+
 #[tokio::test]
 async fn insert_and_get_roundtrip() {
     let provider = MockDataProvider::<TestEntity>::new();

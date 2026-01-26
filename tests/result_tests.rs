@@ -66,6 +66,26 @@ fn json_response_from_wrapper() {
 }
 
 #[test]
+fn json_response_error_sets_500() {
+    struct BadJson;
+
+    impl serde::Serialize for BadJson {
+        fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            Err(serde::ser::Error::custom("boom"))
+        }
+    }
+
+    let mut context = make_context("GET", "/json-error");
+    Json(BadJson).into_response(&mut context);
+
+    assert_eq!(context.response().status(), 500);
+    assert_eq!(context.response().body(), &ResponseBody::Empty);
+}
+
+#[test]
 fn result_into_response_ok_and_err() {
     let mut ok_context = make_context("GET", "/result");
     Ok::<_, HttpError>("ok").into_response(&mut ok_context);
@@ -82,6 +102,13 @@ fn result_into_response_ok_and_err() {
         err_context.response().body(),
         &ResponseBody::Text("error".to_string())
     );
+}
+
+#[test]
+fn http_error_exposes_status_and_message() {
+    let error = HttpError::new(418, "teapot");
+    assert_eq!(error.status(), 418);
+    assert_eq!(error.message(), "teapot");
 }
 
 #[test]
@@ -139,6 +166,78 @@ fn file_response_uses_stream_body() {
     );
 
     let _ = std::fs::remove_file(&temp_path);
+}
+
+#[test]
+fn file_response_stream_reads_chunks() {
+    let mut context = make_context("GET", "/file-read");
+    let temp_path = std::env::temp_dir().join(format!("nimble-web-read-{}.txt", unique_suffix()));
+    std::fs::write(&temp_path, b"chunked").expect("write temp file");
+
+    FileResponse::from_path(&temp_path).into_response(&mut context);
+
+    let body = std::mem::take(context.response_mut()).into_body();
+    match body {
+        ResponseBody::Stream(mut stream) => {
+            let first = stream.read_chunk().expect("read").expect("chunk");
+            assert_eq!(first, b"chunked".to_vec());
+            let second = stream.read_chunk().expect("read");
+            assert!(second.is_none());
+        }
+        other => panic!("expected stream body, got {:?}", other),
+    }
+
+    let _ = std::fs::remove_file(&temp_path);
+}
+
+#[test]
+fn file_response_from_bytes_uses_default_content_type() {
+    let mut context = make_context("GET", "/file-bytes");
+    FileResponse::from_bytes(b"payload".to_vec()).into_response(&mut context);
+
+    assert_eq!(context.response().status(), 200);
+    assert_eq!(
+        context.response().body(),
+        &ResponseBody::Bytes(b"payload".to_vec())
+    );
+    assert_eq!(
+        context.response().headers().get("content-type"),
+        Some("application/octet-stream")
+    );
+}
+
+#[test]
+fn file_response_respects_custom_content_type_and_filename() {
+    let mut context = make_context("GET", "/file-custom");
+    FileResponse::from_bytes(b"image".to_vec())
+        .with_content_type("image/custom")
+        .with_filename("custom.bin")
+        .into_response(&mut context);
+
+    assert_eq!(context.response().status(), 200);
+    assert_eq!(
+        context.response().headers().get("content-type"),
+        Some("image/custom")
+    );
+    assert_eq!(
+        context.response().headers().get("content-disposition"),
+        Some("attachment; filename=\"custom.bin\"")
+    );
+}
+
+#[test]
+fn file_response_missing_path_sets_not_found() {
+    let mut context = make_context("GET", "/missing");
+    let missing = std::env::temp_dir().join(format!("nimble-web-missing-{}.txt", unique_suffix()));
+
+    FileResponse::from_path(&missing).into_response(&mut context);
+
+    assert_eq!(context.response().status(), 404);
+    assert_eq!(context.response().body(), &ResponseBody::Empty);
+    assert_eq!(
+        context.response().headers().get("content-type"),
+        Some("text/plain; charset=utf-8")
+    );
 }
 
 struct Status<T> {
