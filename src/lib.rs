@@ -2,6 +2,7 @@ pub mod app;
 pub mod background;
 pub mod config;
 pub mod controller;
+pub mod data;
 pub mod di;
 pub mod endpoint;
 pub mod entity;

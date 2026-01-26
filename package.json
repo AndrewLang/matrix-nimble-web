@@ -5,6 +5,7 @@
   "scripts": {
     "build": "cargo build",
     "test": "cargo test",
+    "test:coverage": "cargo tarpaulin --out Html",
     "start:light": "cargo run --example light_server",
     "start:light:env": "NIMBLE_ADDRESS=127.0.0.1:8080 cargo run --example light_server"
   }
