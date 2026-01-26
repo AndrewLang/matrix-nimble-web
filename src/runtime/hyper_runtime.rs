@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 use std::future::Future;
-use std::net::TcpListener;
+use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
@@ -13,12 +13,13 @@ use hyper::service::service_fn;
 use hyper::{Request, Response, StatusCode};
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use hyper_util::server::conn::auto::Builder as ConnBuilder;
+use tokio::net::TcpListener;
 
 use crate::app::application::{AppError, Application};
 use crate::http::request::HttpRequest;
 use crate::http::request_body::RequestBody;
 use crate::http::response_body::{ResponseBody, ResponseBodyStream};
-use crate::runtime::runtime::{Runtime, RuntimeFuture};
+use crate::runtime::runtime::Runtime;
 
 pub(crate) struct HyperRuntime;
 
@@ -30,7 +31,7 @@ impl HyperRuntime {
     async fn handle_request(app: Arc<Application>, req: Request<Incoming>) -> Response<BoxedBody> {
         let method = req.method().as_str().to_string();
         let path = req.uri().path().to_string();
-        log::debug!("request {} {}", method, path);
+        log::debug!("Processing request {} {}", method, path);
 
         let mut request = HttpRequest::new(&method, &path);
         for (name, value) in req.headers().iter() {
@@ -49,7 +50,7 @@ impl HyperRuntime {
         }
 
         let response = app.handle_http(request);
-        log::debug!("response {} {} -> {}", method, path, response.status());
+        log::debug!("Response {} {} -> {}", method, path, response.status());
         Self::to_hyper_response(response)
     }
 
@@ -70,9 +71,9 @@ impl HyperRuntime {
         }
 
         let body = match response.into_body() {
-            ResponseBody::Empty => empty_body(),
-            ResponseBody::Bytes(bytes) => full_body(bytes.into()),
-            ResponseBody::Text(text) => full_body(Bytes::from(text)),
+            ResponseBody::Empty => Self::empty_body(),
+            ResponseBody::Bytes(bytes) => Self::full_body(bytes.into()),
+            ResponseBody::Text(text) => Self::full_body(Bytes::from(text)),
             ResponseBody::Stream(stream) => {
                 let stream = ResponseStream::new(stream);
                 BoxBody::new(StreamBody::new(stream))
@@ -81,52 +82,70 @@ impl HyperRuntime {
 
         builder
             .body(body)
-            .unwrap_or_else(|_| Response::new(empty_body()))
+            .unwrap_or_else(|_| Response::new(Self::empty_body()))
+    }
+
+    fn full_body(bytes: Bytes) -> BoxedBody {
+        Full::new(bytes)
+            .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "body error"))
+            .boxed()
+    }
+
+    fn empty_body() -> BoxedBody {
+        Self::full_body(Bytes::new())
     }
 }
 
 impl Runtime for HyperRuntime {
-    fn run<'a>(
+    async fn run<'a>(
         &'a self,
-        listener: TcpListener,
+        addr: SocketAddr,
         app: Arc<Application>,
         shutdown: Pin<Box<dyn Future<Output = ()> + Send + 'a>>,
-    ) -> RuntimeFuture<'a> {
-        Box::pin(async move {
-            log::info!("runtime accept loop started");
-            let listener = tokio::net::TcpListener::from_std(listener)
-                .map_err(|err| AppError::runtime("bind", err))?;
+        wants_random: bool,
+    ) -> Result<(), AppError> {
+        let listener = TcpListener::bind(addr)
+            .await
+            .map_err(|err| AppError::runtime("bind", err))?;
 
-            tokio::pin!(shutdown);
-            loop {
-                tokio::select! {
-                    _ = &mut shutdown => {
-                        log::info!("runtime shutdown signal received");
-                        break;
-                    }
-                    accept = listener.accept() => {
-                        let (stream, _) = accept.map_err(|err| AppError::runtime("accept", err))?;
-                        log::debug!("accepted connection");
-                        let io = TokioIo::new(stream);
+        let local_addr = listener
+            .local_addr()
+            .map_err(|err| AppError::runtime("bind", err))?;
+
+        let bound_address = local_addr.to_string();
+        log::info!("Application listening on {}", bound_address);
+        if wants_random {
+            std::env::set_var("NIMBLE_BOUND_ADDRESS", bound_address);
+        }
+
+        tokio::pin!(shutdown);
+        loop {
+            tokio::select! {
+                _ = &mut shutdown => {
+                    log::info!("runtime shutdown signal received");
+                    break;
+                }
+                accept = listener.accept() => {
+                    let (stream, _) = accept.map_err(|err| AppError::runtime("accept", err))?;
+                    let io = TokioIo::new(stream);
+                    let app = Arc::clone(&app);
+                    let service = service_fn(move |req| {
                         let app = Arc::clone(&app);
-                        let service = service_fn(move |req| {
-                            let app = Arc::clone(&app);
-                            async move {
-                                Ok::<_, Infallible>(HyperRuntime::handle_request(app, req).await)
-                            }
-                        });
+                        async move {
+                            Ok::<_, Infallible>(HyperRuntime::handle_request(app, req).await)
+                        }
+                    });
 
-                        tokio::spawn(async move {
-                            let _ = ConnBuilder::new(TokioExecutor::new())
-                                .serve_connection_with_upgrades(io, service)
-                                .await;
-                        });
-                    }
+                    tokio::spawn(async move {
+                        let _ = ConnBuilder::new(TokioExecutor::new())
+                            .serve_connection_with_upgrades(io, service)
+                            .await;
+                    });
                 }
             }
-            log::info!("runtime accept loop stopped");
-            Ok(())
-        })
+        }
+        log::info!("Runtime accept loop stopped");
+        Ok(())
     }
 }
 
@@ -156,13 +175,3 @@ impl Stream for ResponseStream {
 }
 
 type BoxedBody = BoxBody<Bytes, std::io::Error>;
-
-fn full_body(bytes: Bytes) -> BoxedBody {
-    Full::new(bytes)
-        .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "body error"))
-        .boxed()
-}
-
-fn empty_body() -> BoxedBody {
-    full_body(Bytes::new())
-}

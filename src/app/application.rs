@@ -45,19 +45,6 @@ impl Application {
         let addr = self.parse_address()?;
         log::info!("Start application at {}", addr);
         let wants_random = addr.port() == 0;
-        let mut listener =
-            std::net::TcpListener::bind(addr).map_err(|err| AppError::runtime("bind", err))?;
-        listener.set_nonblocking(true);
-
-        let local_addr = listener
-            .local_addr()
-            .map_err(|err| AppError::runtime("bind", err))?;
-
-        let bound_address = local_addr.to_string();
-        log::info!("Application listening on {}", bound_address);
-        if wants_random {
-            std::env::set_var("NIMBLE_BOUND_ADDRESS", bound_address);
-        }
 
         let context = match &self.job_queue {
             Some(queue) => {
@@ -73,7 +60,7 @@ impl Application {
 
         log::debug!("Starting runtime...");
         runtime
-            .run(listener, Arc::clone(&app), Box::pin(shutdown))
+            .run(addr, Arc::clone(&app), Box::pin(shutdown), wants_random)
             .await?;
         log::info!("Shutting down application");
         app.shutdown();
