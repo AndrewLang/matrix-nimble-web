@@ -15,6 +15,7 @@ use crate::http::context::HttpContext;
 use crate::http::request::HttpRequest;
 use crate::http::response::HttpResponse;
 use crate::pipeline::pipeline::Pipeline;
+use crate::routing::default_router::DefaultRouter;
 use crate::runtime::hyper_runtime::HyperRuntime;
 use crate::runtime::runtime::Runtime;
 
@@ -25,6 +26,7 @@ pub struct Application {
     job_queue: Option<Arc<dyn JobQueue>>,
     address: String,
     config: Configuration,
+    router: DefaultRouter,
 }
 
 impl Application {
@@ -35,6 +37,7 @@ impl Application {
         job_queue: Option<Arc<dyn JobQueue>>,
         address: String,
         config: Configuration,
+        router: DefaultRouter,
     ) -> Self {
         Self {
             pipeline,
@@ -43,6 +46,7 @@ impl Application {
             job_queue,
             address,
             config,
+            router,
         }
     }
 
@@ -90,6 +94,14 @@ impl Application {
 
     pub fn config(&self) -> &Configuration {
         &self.config
+    }
+
+    pub fn router(&self) -> &DefaultRouter {
+        &self.router
+    }
+
+    pub fn log_routes(&self) {
+        self.router.log_routes();
     }
 
     pub(crate) fn create_context(&self, request: HttpRequest) -> HttpContext {

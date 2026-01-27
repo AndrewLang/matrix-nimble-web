@@ -12,7 +12,7 @@ pub trait EntityTestkit {
 
 impl EntityTestkit for AppBuilder {
     fn add_entity<T: Entity>(&mut self) -> &mut Self {
-        AppBuilder::add_entity::<T>(self)
+        AppBuilder::use_entity::<T>(self)
     }
 
     fn entity_registry(&self) -> Arc<EntityRegistry> {

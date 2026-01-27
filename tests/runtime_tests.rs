@@ -28,7 +28,7 @@ impl HttpHandler for HealthHandler {
 async fn runtime_handles_request_and_shutdown() {
     let mut builder = AppBuilder::new();
     builder.use_address("127.0.0.1:0");
-    builder.add_controller::<HealthController>();
+    builder.use_controller::<HealthController>();
 
     let app = builder.build();
     std::env::remove_var("NIMBLE_BOUND_ADDRESS");

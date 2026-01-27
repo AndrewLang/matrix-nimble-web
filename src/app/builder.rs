@@ -66,23 +66,8 @@ impl AppBuilder {
         self
     }
 
-    pub fn add_controller<T: Controller>(&mut self) -> &mut Self {
-        let mut registry = ControllerRegistry::new();
-        T::register(&mut registry);
-
-        self.controller_registry
-            .merge_openapi_registry(registry.openapi_registry());
-
-        for (route, endpoint) in registry
-            .routes()
-            .iter()
-            .cloned()
-            .zip(registry.endpoints().iter().cloned())
-        {
-            self.router.add_route(route.clone());
-            self.controller_registry.add_route(route, endpoint);
-        }
-
+    pub fn use_controller<T: Controller>(&mut self) -> &mut Self {
+        T::register(&mut self.controller_registry);
         self
     }
 
@@ -101,12 +86,12 @@ impl AppBuilder {
         self
     }
 
-    pub fn add_hosted_service<T: HostedService>(&mut self, service: T) -> &mut Self {
+    pub fn use_hosted_service<T: HostedService>(&mut self, service: T) -> &mut Self {
         self.hosted_services.add(service);
         self
     }
 
-    pub fn add_job_queue<T>(&mut self, queue: T) -> &mut Self
+    pub fn use_job_queue<T>(&mut self, queue: T) -> &mut Self
     where
         T: JobQueue + 'static,
     {
@@ -126,9 +111,8 @@ impl AppBuilder {
         self
     }
 
-    pub fn add_entity<T: Entity>(&mut self) -> &mut Self {
+    pub fn use_entity<T: Entity>(&mut self) -> &mut Self {
         self.entity_registry.register::<T>();
-        self.controller_registry.register_entity::<T>();
         self
     }
 
@@ -191,6 +175,12 @@ impl AppBuilder {
         if controller_registry.ensure_openapi_endpoint() {
             router.add_route(crate::routing::route::Route::new("GET", "/openapi.json"));
         }
+
+        // Sync all registry routes to router
+        for route in controller_registry.routes() {
+            router.add_route(route.clone());
+        }
+
         let has_routes = !controller_registry.routes().is_empty();
         let controller_registry = Arc::new(controller_registry);
         let entity_registry = Arc::new(entity_registry);
@@ -212,7 +202,7 @@ impl AppBuilder {
         let pipeline = if has_routes {
             let mut middleware: Vec<Box<dyn DynMiddleware>> = Vec::new();
             middleware.push(Box::new(RoutingMiddleware::with_registry(
-                router,
+                router.clone(),
                 Arc::clone(&controller_registry),
             )));
             middleware.extend(pipeline.into_middleware());
@@ -229,6 +219,7 @@ impl AppBuilder {
             job_queue,
             address,
             config,
+            router,
         )
     }
 

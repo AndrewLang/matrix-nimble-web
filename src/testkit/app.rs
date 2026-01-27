@@ -30,7 +30,7 @@ impl TestApp {
 
     pub fn add_controller<T: Controller>(mut self) -> Self {
         if let Some(builder) = self.builder.as_mut() {
-            builder.add_controller::<T>();
+            builder.use_controller::<T>();
         }
         self
     }
@@ -46,7 +46,7 @@ impl TestApp {
     pub fn run(self, request: HttpRequest) -> HttpResponse {
         let mut builder = self.builder.expect("test app builder");
         if let Some(queue) = self.background_queue {
-            builder.add_job_queue(queue.as_ref().clone());
+            builder.use_job_queue(queue.as_ref().clone());
         }
         let app = builder.build();
         app.handle_http_request(request)

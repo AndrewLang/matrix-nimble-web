@@ -240,12 +240,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .use_entity::<PhotoEntity>()
         .use_entity::<User>();
 
-    builder.router_mut().log_routes();
-
     let app = builder.build();
 
     let config = app.config();
     log::info!("Application configuration: {:?}", config);
+
+    app.log_routes();
 
     app.start().await?;
 

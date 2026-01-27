@@ -94,7 +94,7 @@ fn background_testkit_enqueues_and_runs_jobs() {
 #[test]
 fn entity_testkit_registers_entities() {
     let mut builder = AppBuilder::new();
-    builder.add_entity::<TestEntity>();
+    builder.use_entity::<TestEntity>();
 
     builder.assert_has_entity("test_entity");
     let registry = builder.entity_registry();

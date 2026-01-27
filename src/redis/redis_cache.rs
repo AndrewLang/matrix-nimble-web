@@ -119,7 +119,7 @@ impl Cache for RedisCache {
         let mut conn = self.client.get().await.map_err(CacheError::from)?;
         let payload = serde_json::to_string(value)?;
         if let Some(ttl) = ttl_secs {
-            conn.set_ex::<_, _, ()>(key, payload, ttl as usize)
+            conn.set_ex::<_, _, ()>(key, payload, ttl)
                 .await
                 .map_err(CacheError::from)?;
         } else {

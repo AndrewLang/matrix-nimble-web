@@ -3,6 +3,7 @@ use crate::routing::route::Route;
 use crate::routing::route_data::RouteData;
 use crate::routing::router::Router;
 
+#[derive(Clone)]
 pub struct DefaultRouter {
     routes: Vec<Route>,
 }
@@ -17,8 +18,9 @@ impl DefaultRouter {
     }
 
     pub fn log_routes(&self) {
+        log::info!("Registered routes:");
         for route in &self.routes {
-            log::info!("Route: {} {}", route.method(), route.path());
+            log::info!("\tRoute: {} {}", route.method(), route.path());
         }
     }
 }

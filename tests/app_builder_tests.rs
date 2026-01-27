@@ -107,7 +107,7 @@ impl JobQueue for TestQueue {
 #[test]
 fn app_builder_routes_requests_with_controller() {
     let mut builder = AppBuilder::new();
-    builder.add_controller::<HelloController>();
+    builder.use_controller::<HelloController>();
     let app = builder.build();
 
     let response = app.handle_http_request(HttpRequest::new("GET", "/hello"));
@@ -182,7 +182,7 @@ fn app_builder_registers_in_memory_job_queue() {
 fn app_builder_registers_provided_job_queue() {
     let calls = Arc::new(Mutex::new(0));
     let mut builder = AppBuilder::new();
-    builder.add_job_queue(TestQueue::new(calls.clone()));
+    builder.use_job_queue(TestQueue::new(calls.clone()));
     let app = builder.build();
 
     let queue = app
@@ -196,6 +196,24 @@ fn app_builder_registers_provided_job_queue() {
     test_queue.enqueue(Box::new(CountJob::new(calls.clone())));
 
     assert_eq!(*calls.lock().expect("calls lock"), 1);
+}
+
+#[test]
+fn app_exposes_router_with_registered_routes() {
+    let mut builder = AppBuilder::new();
+    builder.use_controller::<HelloController>();
+    let app = builder.build();
+
+    let router = app.router();
+    let routes = router.routes();
+
+    // Verify the route is present
+    assert!(routes
+        .iter()
+        .any(|r| r.method() == "GET" && r.path() == "/hello"));
+
+    // Verify log_routes doesn't crash
+    app.log_routes();
 }
 
 fn unique_suffix() -> u128 {
