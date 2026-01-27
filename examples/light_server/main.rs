@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::sync::Arc;
 
@@ -40,6 +41,7 @@ struct Photo {
     name: String,
 }
 
+#[derive(Serialize, Deserialize)]
 struct PhotoEntity;
 
 impl Entity for PhotoEntity {
@@ -53,9 +55,24 @@ impl Entity for PhotoEntity {
     fn name() -> &'static str {
         "photo"
     }
+}
 
-    fn plural_name() -> String {
-        "photos".to_string()
+#[derive(Debug, Serialize, Deserialize)]
+pub struct User {
+    pub id: String,
+    pub email: String,
+    pub password_hash: String,
+}
+
+impl Entity for User {
+    type Id = String;
+
+    fn id(&self) -> &Self::Id {
+        &self.id
+    }
+
+    fn name() -> &'static str {
+        "User"
     }
 }
 
@@ -209,6 +226,7 @@ impl BackgroundJob for CleanupJob {
 async fn main() -> Result<(), Box<dyn Error>> {
     init_logging();
 
+    log::info!("Starting light server example...");
     let mut builder = AppBuilder::new();
     builder
         .use_config("web.config.json")
@@ -218,8 +236,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .use_authorization()
         .use_validation()
         .use_in_memory_job_queue()
-        .add_controller::<ApiController>()
-        .add_entity::<PhotoEntity>();
+        .use_controller::<ApiController>()
+        .use_entity::<PhotoEntity>()
+        .use_entity::<User>();
+
+    builder.router_mut().log_routes();
 
     let app = builder.build();
 
