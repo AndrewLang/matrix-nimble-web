@@ -21,6 +21,9 @@ use crate::security::auth::AuthenticationMiddleware;
 use crate::security::policy::AuthorizationMiddleware;
 use crate::validation::ValidationMiddleware;
 
+#[cfg(feature = "redis")]
+use crate::redis::RedisModule;
+
 pub struct AppBuilder {
     pipeline: Pipeline,
     controller_registry: ControllerRegistry,
@@ -188,6 +191,11 @@ impl AppBuilder {
         let controller_registry = Arc::new(controller_registry);
         let entity_registry = Arc::new(entity_registry);
         services.register_singleton::<Arc<EntityRegistry>, _>(move |_| entity_registry.clone());
+        let config = config_builder.build();
+
+        #[cfg(feature = "redis")]
+        RedisModule::register(&mut services, &config);
+
         let services = services.build();
         let job_queue = match job_queue {
             JobQueueConfig::None => None,
@@ -210,7 +218,6 @@ impl AppBuilder {
             pipeline
         };
 
-        let config = config_builder.build();
         Application::new(
             pipeline,
             services,

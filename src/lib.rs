@@ -8,6 +8,13 @@ pub mod endpoint;
 pub mod entity;
 pub mod http;
 pub mod identity;
+#[cfg(feature = "redis")]
+pub mod redis;
+#[cfg(not(feature = "redis"))]
+pub mod redis {
+    #[doc(hidden)]
+    pub struct RedisUnavailable;
+}
 pub mod middleware;
 pub mod openapi;
 pub mod pipeline;

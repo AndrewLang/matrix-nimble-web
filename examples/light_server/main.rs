@@ -9,12 +9,12 @@ use nimble_web::controller::registry::ControllerRegistry;
 use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::entity::entity::Entity;
 use nimble_web::http::context::HttpContext;
+use nimble_web::identity::context::IdentityContext;
 use nimble_web::openapi::OpenApiSchema;
 use nimble_web::openapi::Schema;
 use nimble_web::pipeline::pipeline::PipelineError;
 use nimble_web::result::into_response::ResponseValue;
 use nimble_web::result::Json;
-use nimble_web::security::auth::User;
 use nimble_web::security::policy::Policy;
 use nimble_web::validation::{ContextValidator, ValidationError};
 
@@ -186,11 +186,11 @@ struct SecureHandler;
 
 impl HttpHandler for SecureHandler {
     async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
-        let user = context
-            .get::<User>()
-            .map(|user| user.id.clone())
+        let subject = context
+            .get::<IdentityContext>()
+            .map(|identity| identity.identity().subject().to_string())
             .unwrap_or_else(|| "anonymous".to_string());
-        Ok(ResponseValue::new(format!("hello {}", user)))
+        Ok(ResponseValue::new(format!("hello {}", subject)))
     }
 }
 

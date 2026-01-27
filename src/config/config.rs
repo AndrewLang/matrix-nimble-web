@@ -1,4 +1,7 @@
-﻿use std::collections::HashMap;
+use std::collections::HashMap;
+
+#[cfg(feature = "redis")]
+use crate::config::redis::RedisConfig;
 
 #[derive(Clone, Debug, Default)]
 pub struct Configuration {
@@ -7,6 +10,10 @@ pub struct Configuration {
 
 impl Configuration {
     pub(crate) fn new(values: HashMap<String, String>) -> Self {
+        Self { values }
+    }
+
+    pub fn from_values(values: HashMap<String, String>) -> Self {
         Self { values }
     }
 
@@ -24,5 +31,10 @@ impl Configuration {
             "false" => Some(false),
             _ => None,
         }
+    }
+
+    #[cfg(feature = "redis")]
+    pub fn redis_config(&self) -> RedisConfig {
+        RedisConfig::from_configuration(self)
     }
 }
