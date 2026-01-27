@@ -57,6 +57,10 @@ impl AppBuilder {
         }
     }
 
+    pub fn router_mut(&mut self) -> &mut DefaultRouter {
+        &mut self.router
+    }
+
     pub fn use_middleware<M: Middleware + 'static>(&mut self, middleware: M) -> &mut Self {
         self.pipeline.add(middleware);
         self
