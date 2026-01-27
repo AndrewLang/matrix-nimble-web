@@ -7,6 +7,7 @@
     "test": "cargo test",
     "test:coverage": "cargo llvm-cov --all-features --summary-only",
     "start:light": "cargo run --example light_server",
-    "start:light:env": "NIMBLE_ADDRESS=127.0.0.1:8080 cargo run --example light_server"
+    "start:light:env": "NIMBLE_ADDRESS=127.0.0.1:8080 cargo run --example light_server",
+    "start:photos": "cargo run --example photos"
   }
 }
