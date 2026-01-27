@@ -1,6 +1,8 @@
 pub mod memory_repository;
+#[cfg(feature = "mongodb")]
 pub mod mongo;
 pub mod paging;
+#[cfg(feature = "postgres")]
 pub mod postgres;
 pub mod provider;
 pub mod query;

@@ -17,8 +17,10 @@ pub use crate::controller::controller::*;
 pub use crate::controller::invoker::*;
 pub use crate::controller::registry::*;
 pub use crate::data::memory_repository::*;
+#[cfg(feature = "mongodb")]
 pub use crate::data::mongo::*;
 pub use crate::data::paging::*;
+#[cfg(feature = "postgres")]
 pub use crate::data::postgres::*;
 pub use crate::data::provider::*;
 pub use crate::data::query::*;

@@ -1,3 +1,5 @@
+#![cfg(feature = "postgres")]
+
 use nimble_web::data::paging::PageRequest;
 use nimble_web::data::postgres::{PostgresEntity, PostgresProvider};
 use nimble_web::data::provider::{DataError, DataProvider};

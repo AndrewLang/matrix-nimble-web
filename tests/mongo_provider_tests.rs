@@ -1,3 +1,5 @@
+#![cfg(feature = "mongodb")]
+
 use mongodb::bson::Bson;
 use mongodb::options::ClientOptions;
 use mongodb::Client;
