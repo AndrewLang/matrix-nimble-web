@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use futures_util::TryStreamExt;
 use mongodb::bson::{self, Bson, Document, Regex};
-use mongodb::options::{CountOptions, FindOptions};
+use mongodb::options::FindOptions;
 use mongodb::{Collection, Database};
 
 use crate::data::paging::Page;
@@ -71,8 +71,7 @@ where
     async fn create(&self, entity: E) -> DataResult<E> {
         let collection = self.collection();
         let doc = bson::to_document(&entity).map_err(|err| DataError::Provider(err.to_string()))?;
-        collection
-            .insert_one(doc, None)
+        collection.insert_one(doc)
             .await
             .map_err(Self::map_mongo_error)?;
 
@@ -85,8 +84,7 @@ where
     async fn get(&self, id: &E::Id) -> DataResult<Option<E>> {
         let collection = self.collection();
         let filter = Self::id_filter(id);
-        let doc = collection
-            .find_one(filter, None)
+        let doc = collection.find_one(filter)
             .await
             .map_err(Self::map_mongo_error)?;
         match doc {
@@ -103,8 +101,7 @@ where
         let collection = self.collection();
         let filter = Self::id_filter(entity.id());
         let doc = bson::to_document(&entity).map_err(|err| DataError::Provider(err.to_string()))?;
-        let result = collection
-            .replace_one(filter, doc, None)
+        let result = collection.replace_one(filter, doc)
             .await
             .map_err(Self::map_mongo_error)?;
         if result.matched_count == 0 {
@@ -116,8 +113,7 @@ where
     async fn delete(&self, id: &E::Id) -> DataResult<bool> {
         let collection = self.collection();
         let filter = Self::id_filter(id);
-        let result = collection
-            .delete_one(filter, None)
+        let result = collection.delete_one(filter)
             .await
             .map_err(Self::map_mongo_error)?;
         Ok(result.deleted_count > 0)
@@ -135,7 +131,8 @@ where
         let options = Self::build_find_options(&query);
         let mut cursor = self
             .collection()
-            .find(filter, options)
+            .find(filter)
+            .with_options(options)
             .await
             .map_err(Self::map_mongo_error)?;
 
@@ -164,7 +161,7 @@ where
 
         let mut cursor = self
             .collection()
-            .aggregate(pipeline, None)
+            .aggregate(pipeline)
             .await
             .map_err(Self::map_mongo_error)?;
 
@@ -188,7 +185,7 @@ where
             let filter = Self::build_filter_doc(query)?;
             let count = self
                 .collection()
-                .count_documents(filter, CountOptions::default())
+                .count_documents(filter)
                 .await
                 .map_err(Self::map_mongo_error)?;
             return Ok(count);
@@ -216,7 +213,7 @@ where
 
         let mut cursor = self
             .collection()
-            .aggregate(pipeline, None)
+            .aggregate(pipeline)
             .await
             .map_err(Self::map_mongo_error)?;
 
