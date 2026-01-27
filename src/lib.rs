@@ -17,14 +17,14 @@ pub mod redis {
     pub struct RedisUnavailable;
 }
 pub mod middleware;
-pub mod openapi;
+// pub mod openapi;
 pub mod pipeline;
+pub mod prelude;
 pub mod result;
 pub mod routing;
 pub mod security;
 pub mod testkit;
 pub mod validation;
 pub mod websocket;
-pub mod prelude;
 pub use prelude::*;
 mod runtime;

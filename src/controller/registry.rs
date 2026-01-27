@@ -3,16 +3,13 @@ use crate::endpoint::endpoint::Endpoint;
 use crate::endpoint::http_handler::HttpHandler;
 use crate::endpoint::kind::{EndpointKind, HttpEndpointHandler};
 use crate::endpoint::metadata::EndpointMetadata;
-use crate::entity::entity::Entity;
-use crate::openapi::handler::OpenApiHandler;
-use crate::openapi::registry::{OpenApiOperationMetadata, OpenApiRegistry};
+
 use crate::routing::route::Route;
 use crate::security::policy::Policy;
 
 pub struct ControllerRegistry {
     routes: Vec<Route>,
     endpoints: Vec<Endpoint>,
-    openapi_registry: OpenApiRegistry,
 }
 
 pub struct ControllerActionBuilder<'a> {
@@ -20,7 +17,6 @@ pub struct ControllerActionBuilder<'a> {
     method: &'static str,
     path: String,
     endpoint: Endpoint,
-    openapi: OpenApiOperationMetadata,
 }
 
 impl<'a> ControllerActionBuilder<'a> {
@@ -33,65 +29,9 @@ impl<'a> ControllerActionBuilder<'a> {
         self
     }
 
-    pub fn body<T>(mut self) -> Self
-    where
-        T: crate::openapi::OpenApiSchema + 'static,
-    {
-        let schema_ref = self.registry.openapi_registry.register_schema::<T>();
-        self.openapi.request_body = Some(schema_ref);
-        self
-    }
-
-    pub fn param<T>(mut self, name: &str) -> Self
-    where
-        T: crate::openapi::OpenApiSchema + 'static,
-    {
-        let schema_ref = self.registry.openapi_registry.register_schema::<T>();
-        self.openapi
-            .path_params
-            .insert(name.to_string(), schema_ref);
-        self
-    }
-
-    pub fn query<T>(mut self, name: &str) -> Self
-    where
-        T: crate::openapi::OpenApiSchema + 'static,
-    {
-        let schema_ref = self.registry.openapi_registry.register_schema::<T>();
-        self.openapi
-            .query_params
-            .insert(name.to_string(), schema_ref);
-        self
-    }
-
-    pub fn responds<T>(mut self, status: u16) -> Self
-    where
-        T: crate::openapi::OpenApiSchema + 'static,
-    {
-        let schema_ref = self.registry.openapi_registry.register_schema::<T>();
-        self.openapi.responses.insert(status, schema_ref);
-        self
-    }
-
-    pub fn summary(mut self, value: &str) -> Self {
-        self.openapi.summary = Some(value.to_string());
-        self
-    }
-
-    pub fn description(mut self, value: &str) -> Self {
-        self.openapi.description = Some(value.to_string());
-        self
-    }
-
-    pub fn tag(mut self, value: &str) -> Self {
-        self.openapi.tags.push(value.to_string());
-        self
-    }
-
     pub fn register(self) {
         let route = Route::new(self.method, &self.path);
-        self.registry
-            .add_route_with_openapi(route, self.endpoint, self.openapi);
+        self.registry.add_route(route, self.endpoint);
     }
 }
 
@@ -150,7 +90,6 @@ impl ControllerRegistry {
             method,
             path: path.to_string(),
             endpoint,
-            openapi: OpenApiOperationMetadata::default(),
         }
     }
 
@@ -158,32 +97,16 @@ impl ControllerRegistry {
     where
         H: HttpHandler + Send + Sync + 'static,
     {
-        let requires_auth = matches!(policy, Policy::Authenticated);
         let route = Route::new(method, path);
         let metadata = EndpointMetadata::new(method, path).require_policy(policy);
         let endpoint = Endpoint::new(
             EndpointKind::Http(HttpEndpointHandler::new(handler)),
             metadata,
         );
-        let mut openapi = OpenApiOperationMetadata::new();
-        if requires_auth {
-            openapi.requires_auth = true;
-        }
-        self.add_route_with_openapi(route, endpoint, openapi);
+        self.add_route(route, endpoint);
     }
 
     pub fn add_route(&mut self, route: Route, endpoint: Endpoint) {
-        self.add_route_with_openapi(route, endpoint, OpenApiOperationMetadata::default());
-    }
-
-    fn add_route_with_openapi(
-        &mut self,
-        route: Route,
-        endpoint: Endpoint,
-        openapi: OpenApiOperationMetadata,
-    ) {
-        self.openapi_registry
-            .add_with_metadata(route.method(), route.path(), openapi);
         self.routes.push(route);
         self.endpoints.push(endpoint);
     }
@@ -202,38 +125,6 @@ impl ControllerRegistry {
             .position(|candidate| candidate == route)
             .and_then(|index| self.endpoints.get(index).cloned())
     }
-
-    pub fn openapi_registry(&self) -> OpenApiRegistry {
-        self.openapi_registry.clone()
-    }
-
-    pub fn merge_openapi_registry(&mut self, registry: OpenApiRegistry) {
-        self.openapi_registry.merge(registry);
-    }
-
-    pub fn register_entity<T: Entity>(&mut self) {
-        self.openapi_registry.register_entity::<T>();
-    }
-
-    pub fn ensure_openapi_endpoint(&mut self) -> bool {
-        if self
-            .routes
-            .iter()
-            .any(|route| route.method() == "GET" && route.path() == "/openapi.json")
-        {
-            return false;
-        }
-
-        let handler = OpenApiHandler::new(self.openapi_registry.clone());
-        let metadata = EndpointMetadata::new("GET", "/openapi.json");
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(handler)),
-            metadata,
-        );
-        let route = Route::new("GET", "/openapi.json");
-        self.add_route_with_openapi(route, endpoint, OpenApiOperationMetadata::default());
-        true
-    }
 }
 
 impl Default for ControllerRegistry {
@@ -241,7 +132,6 @@ impl Default for ControllerRegistry {
         Self {
             routes: Vec::new(),
             endpoints: Vec::new(),
-            openapi_registry: OpenApiRegistry::new(),
         }
     }
 }

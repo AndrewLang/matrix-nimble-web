@@ -162,7 +162,7 @@ impl AppBuilder {
     pub fn build(self) -> Application {
         let AppBuilder {
             pipeline,
-            mut controller_registry,
+            controller_registry,
             mut router,
             mut services,
             hosted_services,
@@ -171,10 +171,6 @@ impl AppBuilder {
             address,
             config_builder,
         } = self;
-
-        if controller_registry.ensure_openapi_endpoint() {
-            router.add_route(crate::routing::route::Route::new("GET", "/openapi.json"));
-        }
 
         // Sync all registry routes to router
         for route in controller_registry.routes() {

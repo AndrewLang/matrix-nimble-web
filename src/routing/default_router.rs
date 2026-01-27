@@ -20,7 +20,7 @@ impl DefaultRouter {
     pub fn log_routes(&self) {
         log::info!("Registered routes:");
         for route in &self.routes {
-            log::info!("\tRoute: {} {}", route.method(), route.path());
+            log::info!("🔀 Route: {} {}", route.method(), route.path());
         }
     }
 }

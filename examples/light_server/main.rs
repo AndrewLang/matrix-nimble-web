@@ -11,8 +11,7 @@ use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::entity::entity::Entity;
 use nimble_web::http::context::HttpContext;
 use nimble_web::identity::context::IdentityContext;
-use nimble_web::openapi::OpenApiSchema;
-use nimble_web::openapi::Schema;
+
 use nimble_web::pipeline::pipeline::PipelineError;
 use nimble_web::result::into_response::ResponseValue;
 use nimble_web::result::Json;
@@ -76,30 +75,7 @@ impl Entity for User {
     }
 }
 
-impl OpenApiSchema for CreatePhoto {
-    fn schema() -> Schema {
-        let mut properties = std::collections::HashMap::new();
-        properties.insert("name".to_string(), Schema::string());
-        Schema::object(properties, vec!["name".to_string()])
-    }
-
-    fn schema_name() -> String {
-        "CreatePhoto".to_string()
-    }
-}
-
-impl OpenApiSchema for Photo {
-    fn schema() -> Schema {
-        let mut properties = std::collections::HashMap::new();
-        properties.insert("id".to_string(), Schema::integer_with_format("int64"));
-        properties.insert("name".to_string(), Schema::string());
-        Schema::object(properties, vec!["id".to_string(), "name".to_string()])
-    }
-
-    fn schema_name() -> String {
-        "Photo".to_string()
-    }
-}
+// OpenApiSchema implementations removed
 
 struct ApiController;
 
@@ -107,20 +83,10 @@ impl Controller for ApiController {
     fn register(registry: &mut ControllerRegistry) {
         registry.add("GET", "/health", HealthHandler);
 
-        registry
-            .get("/photos", ListPhotosHandler)
-            .query::<i32>("page")
-            .query::<i32>("pageSize")
-            .summary("List photos")
-            .tag("photos")
-            .register();
+        registry.get("/photos", ListPhotosHandler).register();
 
         registry
             .post("/photos", CreatePhotoHandler)
-            .body::<CreatePhoto>()
-            .responds::<Photo>(200)
-            .summary("Create a photo")
-            .tag("photos")
             .validate(ContextValidator::new(|ctx| {
                 let payload: CreatePhoto = ctx.read_json()?;
                 if payload.name.trim().is_empty() {
@@ -130,13 +96,7 @@ impl Controller for ApiController {
             }))
             .register();
 
-        registry
-            .get("/photos/{id}", GetPhotoHandler)
-            .param::<i64>("id")
-            .responds::<Photo>(200)
-            .summary("Get photo by id")
-            .tag("photos")
-            .register();
+        registry.get("/photos/{id}", GetPhotoHandler).register();
 
         registry.add_with_policy("GET", "/secure", SecureHandler, Policy::Authenticated);
     }
