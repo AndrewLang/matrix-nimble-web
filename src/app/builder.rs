@@ -1,3 +1,4 @@
+use crate::background::config::JobQueueConfig;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -35,12 +36,6 @@ pub struct AppBuilder {
     entity_registry: EntityRegistry,
     address: Option<String>,
     config_builder: ConfigBuilder,
-}
-
-enum JobQueueConfig {
-    None,
-    Provided(Arc<dyn JobQueue>),
-    InMemory,
 }
 
 impl AppBuilder {

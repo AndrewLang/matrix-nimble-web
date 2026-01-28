@@ -1,5 +1,6 @@
 pub use crate::app::application::*;
 pub use crate::app::builder::*;
+pub use crate::background::config::*;
 pub use crate::background::hosted_service::*;
 pub use crate::background::in_memory_queue::*;
 pub use crate::background::job::*;
