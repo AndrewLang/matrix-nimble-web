@@ -1,6 +1,7 @@
 pub mod app;
 pub use app::builder::AppBuilder;
 pub mod background;
+pub mod cli;
 pub mod config;
 pub mod controller;
 pub mod data;
