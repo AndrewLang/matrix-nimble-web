@@ -1,14 +1,9 @@
 use nimble_web::controller::controller::Controller;
-use nimble_web::controller::registry::ControllerRegistry;
-use nimble_web::endpoint::endpoint::Endpoint;
 use nimble_web::endpoint::http_handler::HttpHandler;
-use nimble_web::endpoint::kind::{EndpointKind, HttpEndpointHandler};
-use nimble_web::endpoint::metadata::EndpointMetadata;
 use nimble_web::http::request_body::RequestBody;
 use nimble_web::http::response_body::ResponseBody;
 use nimble_web::pipeline::pipeline::PipelineError;
 use nimble_web::result::into_response::ResponseValue;
-use nimble_web::routing::route::Route;
 use nimble_web::testkit::app::TestApp;
 use nimble_web::testkit::request::HttpRequestBuilder;
 use nimble_web::validation::ValidationMiddleware;
@@ -60,54 +55,45 @@ fn validator_fails() -> ContextValidator {
     ContextValidator::new(|_context| Err(ValidationError::new("invalid")))
 }
 
+use nimble_web::controller::registry::EndpointRoute;
+
 struct ValidController;
 
 impl Controller for ValidController {
-    fn register(registry: &mut ControllerRegistry) {
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(TestEndpoint)),
-            EndpointMetadata::new("POST", "/validate").add_validator(validator_passes()),
-        );
-        registry.add_route(Route::new("POST", "/validate"), endpoint);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![EndpointRoute::post("/validate", TestEndpoint)
+            .validate(validator_passes())
+            .build()]
     }
 }
 
 struct InvalidController;
 
 impl Controller for InvalidController {
-    fn register(registry: &mut ControllerRegistry) {
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(TestEndpoint)),
-            EndpointMetadata::new("POST", "/validate").add_validator(validator_fails()),
-        );
-        registry.add_route(Route::new("POST", "/validate"), endpoint);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![EndpointRoute::post("/validate", TestEndpoint)
+            .validate(validator_fails())
+            .build()]
     }
 }
 
 struct NoValidatorController;
 
 impl Controller for NoValidatorController {
-    fn register(registry: &mut ControllerRegistry) {
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(TestEndpoint)),
-            EndpointMetadata::new("POST", "/validate"),
-        );
-        registry.add_route(Route::new("POST", "/validate"), endpoint);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![EndpointRoute::post("/validate", TestEndpoint).build()]
     }
 }
 
 struct MultiValidatorController;
 
 impl Controller for MultiValidatorController {
-    fn register(registry: &mut ControllerRegistry) {
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(TestEndpoint)),
-            EndpointMetadata::new("POST", "/validate")
-                .add_validator(validator_passes())
-                .add_validator(validator_fails())
-                .add_validator(validator_passes()),
-        );
-        registry.add_route(Route::new("POST", "/validate"), endpoint);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![EndpointRoute::post("/validate", TestEndpoint)
+            .validate(validator_passes())
+            .validate(validator_fails())
+            .validate(validator_passes())
+            .build()]
     }
 }
 

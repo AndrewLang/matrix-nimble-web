@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use nimble_web::app::builder::AppBuilder;
 use nimble_web::controller::controller::Controller;
-use nimble_web::controller::registry::ControllerRegistry;
+
 use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::http::context::HttpContext;
 use nimble_web::pipeline::pipeline::PipelineError;
@@ -10,9 +10,11 @@ use nimble_web::result::into_response::ResponseValue;
 
 struct HealthController;
 
+use nimble_web::controller::registry::EndpointRoute;
+
 impl Controller for HealthController {
-    fn register(registry: &mut ControllerRegistry) {
-        registry.add("GET", "/health", HealthHandler);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![EndpointRoute::get("/health", HealthHandler).build()]
     }
 }
 

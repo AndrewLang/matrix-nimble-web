@@ -1,5 +1,5 @@
-use crate::controller::registry::ControllerRegistry;
+use crate::controller::registry::EndpointRoute;
 
 pub trait Controller: Send + Sync + 'static {
-    fn register(registry: &mut ControllerRegistry);
+    fn routes() -> Vec<EndpointRoute>;
 }

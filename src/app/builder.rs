@@ -57,17 +57,16 @@ impl AppBuilder {
         }
     }
 
-    pub fn router_mut(&mut self) -> &mut DefaultRouter {
-        &mut self.router
-    }
-
     pub fn use_middleware<M: Middleware + 'static>(&mut self, middleware: M) -> &mut Self {
         self.pipeline.add(middleware);
         self
     }
 
     pub fn use_controller<T: Controller>(&mut self) -> &mut Self {
-        T::register(&mut self.controller_registry);
+        let routes = T::routes();
+        for route in routes {
+            self.controller_registry.add_endpoint_route(route);
+        }
         self
     }
 
@@ -172,7 +171,6 @@ impl AppBuilder {
             config_builder,
         } = self;
 
-        // Sync all registry routes to router
         for route in controller_registry.routes() {
             router.add_route(route.clone());
         }

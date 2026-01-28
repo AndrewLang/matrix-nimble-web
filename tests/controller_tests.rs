@@ -6,10 +6,7 @@ use nimble_web::controller::controller::Controller;
 use nimble_web::controller::invoker::ControllerInvokerMiddleware;
 use nimble_web::controller::registry::ControllerRegistry;
 use nimble_web::di::ServiceContainer;
-use nimble_web::endpoint::endpoint::Endpoint;
 use nimble_web::endpoint::http_handler::HttpHandler;
-use nimble_web::endpoint::kind::{EndpointKind, HttpEndpointHandler};
-use nimble_web::endpoint::metadata::EndpointMetadata;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
 use nimble_web::http::response_body::ResponseBody;
@@ -19,7 +16,6 @@ use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
 use nimble_web::result::into_response::ResponseValue;
 use nimble_web::result::HttpError;
 use nimble_web::routing::default_router::DefaultRouter;
-use nimble_web::routing::route::Route;
 use nimble_web::routing::router::Router;
 
 #[derive(Clone)]
@@ -57,43 +53,30 @@ fn test_trace() -> Trace {
     TEST_TRACE.with(|cell| cell.borrow().clone().expect("test trace set"))
 }
 
+use nimble_web::controller::registry::EndpointRoute;
+
 struct TestController;
 
 impl Controller for TestController {
-    fn register(registry: &mut ControllerRegistry) {
+    fn routes() -> Vec<EndpointRoute> {
         let trace = test_trace();
-        let metadata = EndpointMetadata::new("GET", "/photos");
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(TestEndpoint { trace })),
-            metadata,
-        );
-        registry.add_route(Route::new("GET", "/photos"), endpoint);
+        vec![EndpointRoute::get("/photos", TestEndpoint { trace }).build()]
     }
 }
 
 struct ParamController;
 
 impl Controller for ParamController {
-    fn register(registry: &mut ControllerRegistry) {
-        let metadata = EndpointMetadata::new("GET", "/photos/{id}");
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(ParamEndpoint)),
-            metadata,
-        );
-        registry.add_route(Route::new("GET", "/photos/{id}"), endpoint);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![EndpointRoute::get("/photos/{id}", ParamEndpoint).build()]
     }
 }
 
 struct ErrorController;
 
 impl Controller for ErrorController {
-    fn register(registry: &mut ControllerRegistry) {
-        let metadata = EndpointMetadata::new("GET", "/error");
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(ErrorEndpoint)),
-            metadata,
-        );
-        registry.add_route(Route::new("GET", "/error"), endpoint);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![EndpointRoute::get("/error", ErrorEndpoint).build()]
     }
 }
 

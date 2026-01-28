@@ -7,19 +7,59 @@ use crate::endpoint::metadata::EndpointMetadata;
 use crate::routing::route::Route;
 use crate::security::policy::Policy;
 
+pub struct EndpointRoute {
+    pub route: Route,
+    pub endpoint: Endpoint,
+}
+
+impl EndpointRoute {
+    pub fn new(route: Route, endpoint: Endpoint) -> Self {
+        Self { route, endpoint }
+    }
+
+    pub fn get<H>(path: &str, handler: H) -> RouteBuilder
+    where
+        H: HttpHandler + Send + Sync + 'static,
+    {
+        RouteBuilder::new("GET", path, handler)
+    }
+
+    pub fn post<H>(path: &str, handler: H) -> RouteBuilder
+    where
+        H: HttpHandler + Send + Sync + 'static,
+    {
+        RouteBuilder::new("POST", path, handler)
+    }
+}
+
 pub struct ControllerRegistry {
     routes: Vec<Route>,
     endpoints: Vec<Endpoint>,
 }
 
-pub struct ControllerActionBuilder<'a> {
-    registry: &'a mut ControllerRegistry,
+pub struct RouteBuilder {
     method: &'static str,
     path: String,
     endpoint: Endpoint,
 }
 
-impl<'a> ControllerActionBuilder<'a> {
+impl RouteBuilder {
+    pub fn new<H>(method: &'static str, path: &str, handler: H) -> Self
+    where
+        H: HttpHandler + Send + Sync + 'static,
+    {
+        let metadata = EndpointMetadata::new(method, path);
+        let endpoint = Endpoint::new(
+            EndpointKind::Http(HttpEndpointHandler::new(handler)),
+            metadata,
+        );
+        Self {
+            method,
+            path: path.to_string(),
+            endpoint,
+        }
+    }
+
     pub fn validate<T>(mut self, validator: T) -> Self
     where
         T: crate::validation::AnyValidator + 'static,
@@ -29,9 +69,15 @@ impl<'a> ControllerActionBuilder<'a> {
         self
     }
 
-    pub fn register(self) {
+    pub fn with_policy(mut self, policy: Policy) -> Self {
+        let metadata = self.endpoint.metadata().clone().require_policy(policy);
+        self.endpoint = Endpoint::new(self.endpoint.kind().clone(), metadata);
+        self
+    }
+
+    pub fn build(self) -> EndpointRoute {
         let route = Route::new(self.method, &self.path);
-        self.registry.add_route(route, self.endpoint);
+        EndpointRoute::new(route, self.endpoint)
     }
 }
 
@@ -41,7 +87,10 @@ impl ControllerRegistry {
     }
 
     pub fn register<C: Controller>(&mut self) {
-        C::register(self);
+        let routes = C::routes();
+        for endpoint_route in routes {
+            self.add_endpoint_route(endpoint_route);
+        }
     }
 
     pub fn add<H>(&mut self, method: &str, path: &str, handler: H)
@@ -55,42 +104,6 @@ impl ControllerRegistry {
             metadata,
         );
         self.add_route(route, endpoint);
-    }
-
-    pub fn post<H>(&mut self, path: &str, handler: H) -> ControllerActionBuilder<'_>
-    where
-        H: HttpHandler + Send + Sync + 'static,
-    {
-        self.action("POST", path, handler)
-    }
-
-    pub fn get<H>(&mut self, path: &str, handler: H) -> ControllerActionBuilder<'_>
-    where
-        H: HttpHandler + Send + Sync + 'static,
-    {
-        self.action("GET", path, handler)
-    }
-
-    fn action<H>(
-        &mut self,
-        method: &'static str,
-        path: &str,
-        handler: H,
-    ) -> ControllerActionBuilder<'_>
-    where
-        H: HttpHandler + Send + Sync + 'static,
-    {
-        let metadata = EndpointMetadata::new(method, path);
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(handler)),
-            metadata,
-        );
-        ControllerActionBuilder {
-            registry: self,
-            method,
-            path: path.to_string(),
-            endpoint,
-        }
     }
 
     pub fn add_with_policy<H>(&mut self, method: &str, path: &str, handler: H, policy: Policy)
@@ -109,6 +122,10 @@ impl ControllerRegistry {
     pub fn add_route(&mut self, route: Route, endpoint: Endpoint) {
         self.routes.push(route);
         self.endpoints.push(endpoint);
+    }
+
+    pub fn add_endpoint_route(&mut self, endpoint_route: EndpointRoute) {
+        self.add_route(endpoint_route.route, endpoint_route.endpoint);
     }
 
     pub fn routes(&self) -> &[Route] {

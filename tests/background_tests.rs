@@ -8,7 +8,7 @@ use nimble_web::background::job::{BackgroundJob, JobContext, JobResult};
 use nimble_web::background::job_queue::JobQueue;
 use nimble_web::background::runner::JobQueueRunner;
 use nimble_web::controller::controller::Controller;
-use nimble_web::controller::registry::ControllerRegistry;
+
 use nimble_web::di::ServiceContainer;
 use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::http::context::HttpContext;
@@ -188,9 +188,11 @@ impl BackgroundJob for TestJob {
 
 struct EnqueueController;
 
+use nimble_web::controller::registry::EndpointRoute;
+
 impl Controller for EnqueueController {
-    fn register(registry: &mut ControllerRegistry) {
-        registry.add("POST", "/enqueue", EnqueueHandler);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![EndpointRoute::post("/enqueue", EnqueueHandler).build()]
     }
 }
 

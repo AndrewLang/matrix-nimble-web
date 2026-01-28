@@ -1,16 +1,11 @@
 use nimble_web::config::ConfigBuilder;
 use nimble_web::controller::controller::Controller;
-use nimble_web::controller::registry::ControllerRegistry;
 use nimble_web::di::ServiceContainer;
-use nimble_web::endpoint::endpoint::Endpoint;
 use nimble_web::endpoint::http_handler::HttpHandler;
-use nimble_web::endpoint::kind::{EndpointKind, HttpEndpointHandler};
-use nimble_web::endpoint::metadata::EndpointMetadata;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
 use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
 use nimble_web::result::into_response::ResponseValue;
-use nimble_web::routing::route::Route;
 use nimble_web::security::auth::AuthenticationMiddleware;
 use nimble_web::testkit;
 use nimble_web::testkit::auth::{assert_authenticated, WithAuth};
@@ -26,13 +21,11 @@ impl HttpHandler for TestEndpoint {
 
 struct TestController;
 
+use nimble_web::controller::registry::EndpointRoute;
+
 impl Controller for TestController {
-    fn register(registry: &mut ControllerRegistry) {
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(TestEndpoint)),
-            EndpointMetadata::new("GET", "/controller"),
-        );
-        registry.add_route(Route::new("GET", "/controller"), endpoint);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![EndpointRoute::get("/controller", TestEndpoint).build()]
     }
 }
 

@@ -6,7 +6,7 @@ use nimble_web::background::in_memory_queue::InMemoryJobQueue;
 use nimble_web::background::job::{BackgroundJob, JobContext, JobResult};
 use nimble_web::background::job_queue::JobQueue;
 use nimble_web::controller::controller::Controller;
-use nimble_web::controller::registry::ControllerRegistry;
+
 use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::http::request::HttpRequest;
 use nimble_web::http::response_body::ResponseBody;
@@ -48,9 +48,11 @@ impl Drop for EnvGuard {
 
 struct HelloController;
 
+use nimble_web::controller::registry::EndpointRoute;
+
 impl Controller for HelloController {
-    fn register(registry: &mut ControllerRegistry) {
-        registry.add("GET", "/hello", HelloHandler);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![EndpointRoute::get("/hello", HelloHandler).build()]
     }
 }
 
@@ -207,12 +209,10 @@ fn app_exposes_router_with_registered_routes() {
     let router = app.router();
     let routes = router.routes();
 
-    // Verify the route is present
     assert!(routes
         .iter()
         .any(|r| r.method() == "GET" && r.path() == "/hello"));
 
-    // Verify log_routes doesn't crash
     app.log_routes();
 }
 

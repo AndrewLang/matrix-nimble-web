@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use nimble_web::app::builder::AppBuilder;
 use nimble_web::background::job::{BackgroundJob, JobContext, JobResult};
 use nimble_web::controller::controller::Controller;
-use nimble_web::controller::registry::ControllerRegistry;
+
 use nimble_web::di::ServiceContainer;
 use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::http::context::HttpContext;
@@ -37,9 +37,11 @@ impl nimble_web::entity::entity::Entity for TestEntity {
 
 struct HelloController;
 
+use nimble_web::controller::registry::EndpointRoute;
+
 impl Controller for HelloController {
-    fn register(registry: &mut ControllerRegistry) {
-        registry.add("GET", "/hello", HelloHandler);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![EndpointRoute::get("/hello", HelloHandler).build()]
     }
 }
 

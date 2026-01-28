@@ -6,7 +6,7 @@ use nimble_web::app::builder::AppBuilder;
 use nimble_web::background::job::{BackgroundJob, JobContext, JobResult};
 use nimble_web::background::job_queue::JobQueue;
 use nimble_web::controller::controller::Controller;
-use nimble_web::controller::registry::ControllerRegistry;
+
 use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::entity::entity::Entity;
 use nimble_web::http::context::HttpContext;
@@ -75,30 +75,31 @@ impl Entity for User {
     }
 }
 
-// OpenApiSchema implementations removed
+use nimble_web::controller::registry::EndpointRoute;
+
+// ...
 
 struct ApiController;
 
 impl Controller for ApiController {
-    fn register(registry: &mut ControllerRegistry) {
-        registry.add("GET", "/health", HealthHandler);
-
-        registry.get("/photos", ListPhotosHandler).register();
-
-        registry
-            .post("/photos", CreatePhotoHandler)
-            .validate(ContextValidator::new(|ctx| {
-                let payload: CreatePhoto = ctx.read_json()?;
-                if payload.name.trim().is_empty() {
-                    return Err(ValidationError::new("name is required"));
-                }
-                Ok(())
-            }))
-            .register();
-
-        registry.get("/photos/{id}", GetPhotoHandler).register();
-
-        registry.add_with_policy("GET", "/secure", SecureHandler, Policy::Authenticated);
+    fn routes() -> Vec<EndpointRoute> {
+        vec![
+            EndpointRoute::get("/health", HealthHandler).build(),
+            EndpointRoute::get("/photos", ListPhotosHandler).build(),
+            EndpointRoute::post("/photos", CreatePhotoHandler)
+                .validate(ContextValidator::new(|ctx| {
+                    let payload: CreatePhoto = ctx.read_json()?;
+                    if payload.name.trim().is_empty() {
+                        return Err(ValidationError::new("name is required"));
+                    }
+                    Ok(())
+                }))
+                .build(),
+            EndpointRoute::get("/photos/{id}", GetPhotoHandler).build(),
+            EndpointRoute::get("/secure", SecureHandler)
+                .with_policy(Policy::Authenticated)
+                .build(),
+        ]
     }
 }
 
