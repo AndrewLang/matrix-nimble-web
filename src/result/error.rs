@@ -1,6 +1,8 @@
 use crate::http::context::HttpContext;
 use crate::http::response_body::ResponseBody;
 use crate::result::into_response::IntoResponse;
+use std::error::Error;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HttpError {
@@ -24,6 +26,14 @@ impl HttpError {
         &self.message
     }
 }
+
+impl Display for HttpError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "HTTP {}: {}", self.status, self.message)
+    }
+}
+
+impl Error for HttpError {}
 
 impl IntoResponse for HttpError {
     fn into_response(self, context: &mut HttpContext) {

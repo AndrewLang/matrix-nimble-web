@@ -9,6 +9,7 @@ use nimble_web::controller::controller::Controller;
 
 use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::entity::entity::Entity;
+use nimble_web::entity::operation::EntityOperation;
 use nimble_web::http::context::HttpContext;
 use nimble_web::identity::context::IdentityContext;
 
@@ -204,7 +205,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .use_in_memory_job_queue()
         .use_controller::<ApiController>()
         .use_entity::<PhotoEntity>()
-        .use_entity::<User>()
+        .use_entity_with_operations::<User>(&[EntityOperation::Get])
         .route_get("/api/health", HealthHandler);
 
     let app = builder.build();

@@ -4,15 +4,26 @@ use crate::app::builder::AppBuilder;
 use crate::entity::entity::Entity;
 use crate::entity::registry::EntityRegistry;
 
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use std::str::FromStr;
+
 pub trait EntityTestkit {
-    fn add_entity<T: Entity>(&mut self) -> &mut Self;
+    fn add_entity<E>(&mut self) -> &mut Self
+    where
+        E: Entity + Serialize + DeserializeOwned + 'static,
+        E::Id: FromStr + Send + Sync + 'static;
     fn entity_registry(&self) -> Arc<EntityRegistry>;
     fn assert_has_entity(&self, name: &str);
 }
 
 impl EntityTestkit for AppBuilder {
-    fn add_entity<T: Entity>(&mut self) -> &mut Self {
-        AppBuilder::use_entity::<T>(self)
+    fn add_entity<E>(&mut self) -> &mut Self
+    where
+        E: Entity + Serialize + DeserializeOwned + 'static,
+        E::Id: FromStr + Send + Sync + 'static,
+    {
+        AppBuilder::use_entity::<E>(self)
     }
 
     fn entity_registry(&self) -> Arc<EntityRegistry> {

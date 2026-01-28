@@ -1,8 +1,11 @@
-use crate::background::config::JobQueueConfig;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::app::application::Application;
+use crate::background::config::JobQueueConfig;
 use crate::background::hosted_service::{HostedService, HostedServiceHost};
 use crate::background::in_memory_queue::InMemoryJobQueue;
 use crate::background::job_queue::JobQueue;
@@ -12,6 +15,8 @@ use crate::di::ServiceContainer;
 use crate::endpoint::http_handler::HttpHandler;
 use crate::endpoint::registry::EndpointRegistry;
 use crate::entity::entity::Entity;
+use crate::entity::hooks::{DefaultEntityHooks, EntityHooks};
+use crate::entity::operation::{EntityOperation, OperationHandler};
 use crate::entity::registry::EntityRegistry;
 use crate::middleware::endpoint_exec::EndpointExecutionMiddleware;
 use crate::middleware::routing::RoutingMiddleware;
@@ -107,11 +112,6 @@ impl AppBuilder {
             .register_singleton::<Arc<dyn JobQueue>, _>(move |provider| {
                 Arc::new(InMemoryJobQueue::new(Arc::new(provider.clone())))
             });
-        self
-    }
-
-    pub fn use_entity<T: Entity>(&mut self) -> &mut Self {
-        self.entity_registry.register::<T>();
         self
     }
 
@@ -253,6 +253,77 @@ impl AppBuilder {
         H: HttpHandler + Send + Sync + 'static,
     {
         self.endpoint_registry.delete(path, handler);
+        self
+    }
+}
+
+impl AppBuilder {
+    pub fn use_entity<E>(&mut self) -> &mut Self
+    where
+        E: Entity + Serialize + DeserializeOwned + 'static,
+        E::Id: FromStr + Send + Sync + 'static,
+    {
+        self.entity_registry.register::<E>();
+        self.use_entity_with_operations::<E>(EntityOperation::all())
+    }
+
+    pub fn use_entity_with_operations<E>(&mut self, operations: &[EntityOperation]) -> &mut Self
+    where
+        E: Entity + Serialize + DeserializeOwned + 'static,
+        E::Id: FromStr + Send + Sync + 'static,
+    {
+        self.use_entity_with_hooks::<E, DefaultEntityHooks>(DefaultEntityHooks, operations)
+    }
+
+    pub fn use_entity_with_hooks<E, H>(
+        &mut self,
+        hooks: H,
+        operations: &[EntityOperation],
+    ) -> &mut Self
+    where
+        E: Entity + Serialize + DeserializeOwned + 'static,
+        E::Id: FromStr + Send + Sync + 'static,
+        H: EntityHooks<E> + 'static,
+    {
+        let hooks = Arc::new(hooks);
+        let plural = E::plural_name().to_lowercase();
+        let base_path = format!("api/{}", plural);
+
+        for op in operations {
+            match op {
+                EntityOperation::List => {
+                    self.route_get(
+                        &format!("{}/{{page}}/{{pageSize}}", base_path),
+                        OperationHandler::new(EntityOperation::List, hooks.clone()),
+                    );
+                }
+                EntityOperation::Get => {
+                    self.route_get(
+                        &format!("{}/{{id}}", base_path),
+                        OperationHandler::new(EntityOperation::Get, hooks.clone()),
+                    );
+                }
+                EntityOperation::Create => {
+                    self.route_post(
+                        &base_path,
+                        OperationHandler::new(EntityOperation::Create, hooks.clone()),
+                    );
+                }
+                EntityOperation::Update => {
+                    self.route_put(
+                        &base_path,
+                        OperationHandler::new(EntityOperation::Update, hooks.clone()),
+                    );
+                }
+                EntityOperation::Delete => {
+                    self.route_delete(
+                        &format!("{}/{{id}}", base_path),
+                        OperationHandler::new(EntityOperation::Delete, hooks.clone()),
+                    );
+                }
+            }
+        }
+
         self
     }
 }

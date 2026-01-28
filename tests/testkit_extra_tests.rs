@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
 use nimble_web::app::builder::AppBuilder;
@@ -19,16 +20,8 @@ use nimble_web::testkit::entity::{EntityRegistryAssertions, EntityTestkit};
 use nimble_web::testkit::response::ResponseAssertions;
 use nimble_web::testkit::services::TestServices;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct TestEntity {
-    // ... keep TestEntity lines if possible, or just skip them?
-    // I'll assume I can just target imports separately and handler separately.
-    // But I can do valid replacement for whole file parts.
-
-    // I'll split into 2 chunks if I use multi_replace. Or simpler replace.
-    // Adding import at top.
-    // Fixing handler at middle.
-    // I'll use multi_replace.
     id: i64,
 }
 
