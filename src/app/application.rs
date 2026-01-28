@@ -170,7 +170,7 @@ impl Application {
     where
         E: crate::data::postgres::PostgresEntity,
     {
-        use crate::data::postgres::PostgresMigrator;
+        use crate::data::postgres::migration::PostgresMigrator;
 
         let migrator = self.services.resolve::<PostgresMigrator>().ok_or_else(|| {
             crate::data::provider::DataError::Provider(

@@ -11,6 +11,7 @@ use crate::background::hosted_service::{HostedService, HostedServiceHost};
 use crate::background::in_memory_queue::InMemoryJobQueue;
 use crate::background::job_queue::JobQueue;
 use crate::config::ConfigBuilder;
+use crate::config::Configuration;
 use crate::controller::controller::Controller;
 use crate::data::memory_repository::MemoryRepository;
 use crate::data::provider::DataProvider;
