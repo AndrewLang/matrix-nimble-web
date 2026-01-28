@@ -17,6 +17,17 @@ pub struct Cli {
 
     #[arg(short, long)]
     pub output: Option<PathBuf>,
+
+    /// Database provider to use
+    #[arg(short, long, value_enum, default_value_t = Database::InMemory)]
+    pub database: Database,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
+pub enum Database {
+    Postgres,
+    Mongodb,
+    InMemory,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
@@ -72,6 +83,21 @@ impl Generator {
 
         let cargo_toml = cargo_toml.replace("{{PROJECT_NAME}}", &self.cli.name);
         let main_rs = main_rs.replace("{{PROJECT_NAME}}", &self.cli.name);
+
+        let (db_features, db_init) = match self.cli.database {
+            Database::Postgres => (
+                ", features = [\"postgres\"]",
+                "// TODO: Initialize Postgres\n        // .use_postgres(\"postgres://user:pass@localhost/db\")",
+            ),
+            Database::Mongodb => (
+                ", features = [\"mongodb\"]",
+                "// TODO: Initialize MongoDB\n        // .use_mongodb(\"mongodb://localhost:27017\")",
+            ),
+            Database::InMemory => ("", "// Using In-Memory repository by default"),
+        };
+
+        let cargo_toml = cargo_toml.replace("{{DATABASE_FEATURES}}", db_features);
+        let main_rs = main_rs.replace("{{DATABASE_INIT}}", db_init);
 
         fs::write(self.output_dir.join("Cargo.toml"), cargo_toml)?;
         fs::write(src_dir.join("main.rs"), main_rs)?;

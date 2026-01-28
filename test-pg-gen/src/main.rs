@@ -7,11 +7,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     
     builder
         .use_address("0.0.0.0:8080")
-        .{{DATABASE_INIT}}
+        .// TODO: Initialize Postgres
+        // .use_postgres("postgres://user:pass@localhost/db")
         .route_get("/hello", HelloHandler);
 
     let app = builder.build();
-    log::info!("Starting {{PROJECT_NAME}} at http://0.0.0.0:8080");
+    log::info!("Starting pg-app at http://0.0.0.0:8080");
     app.start().await?;
 
     Ok(())
