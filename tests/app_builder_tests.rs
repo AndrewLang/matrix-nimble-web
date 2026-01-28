@@ -48,7 +48,7 @@ impl Drop for EnvGuard {
 
 struct HelloController;
 
-use nimble_web::controller::registry::EndpointRoute;
+use nimble_web::endpoint::route::EndpointRoute;
 
 impl Controller for HelloController {
     fn routes() -> Vec<EndpointRoute> {
@@ -56,8 +56,13 @@ impl Controller for HelloController {
     }
 }
 
+use async_trait::async_trait;
+
+// ...
+
 struct HelloHandler;
 
+#[async_trait]
 impl HttpHandler for HelloHandler {
     async fn invoke(
         &self,

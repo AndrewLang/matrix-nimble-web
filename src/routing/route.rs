@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::{Debug, Formatter, Result as FmtResult};
+use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 
 use crate::routing::route_data::RouteData;
 
@@ -81,5 +81,11 @@ impl Debug for Route {
             .field("method", &self.method)
             .field("path", &self.path)
             .finish()
+    }
+}
+
+impl Display for Route {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{} {}", self.method, self.path)
     }
 }

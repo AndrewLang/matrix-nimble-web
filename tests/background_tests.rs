@@ -188,7 +188,7 @@ impl BackgroundJob for TestJob {
 
 struct EnqueueController;
 
-use nimble_web::controller::registry::EndpointRoute;
+use nimble_web::endpoint::route::EndpointRoute;
 
 impl Controller for EnqueueController {
     fn routes() -> Vec<EndpointRoute> {
@@ -196,8 +196,11 @@ impl Controller for EnqueueController {
     }
 }
 
+use async_trait::async_trait;
+
 struct EnqueueHandler;
 
+#[async_trait]
 impl HttpHandler for EnqueueHandler {
     async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         if let Some(calls) = test_calls() {

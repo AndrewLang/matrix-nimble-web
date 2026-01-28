@@ -11,8 +11,11 @@ use nimble_web::testkit;
 use nimble_web::testkit::auth::{assert_authenticated, WithAuth};
 use nimble_web::testkit::response::ResponseAssertions;
 
+use async_trait::async_trait;
+
 struct TestEndpoint;
 
+#[async_trait]
 impl HttpHandler for TestEndpoint {
     async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new("ok"))
@@ -21,7 +24,7 @@ impl HttpHandler for TestEndpoint {
 
 struct TestController;
 
-use nimble_web::controller::registry::EndpointRoute;
+use nimble_web::endpoint::route::EndpointRoute;
 
 impl Controller for TestController {
     fn routes() -> Vec<EndpointRoute> {

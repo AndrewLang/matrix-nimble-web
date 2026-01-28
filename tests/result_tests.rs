@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
+use async_trait::async_trait;
 use nimble_web::config::ConfigBuilder;
 use nimble_web::di::ServiceContainer;
-use nimble_web::endpoint::endpoint::Endpoint;
+use nimble_web::endpoint::http_endpoint::HttpEndpoint;
+use nimble_web::endpoint::http_endpoint_handler::HttpEndpointHandler;
 use nimble_web::endpoint::http_handler::HttpHandler;
-use nimble_web::endpoint::kind::{EndpointKind, HttpEndpointHandler};
 use nimble_web::endpoint::metadata::EndpointMetadata;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
@@ -127,10 +129,10 @@ fn explicit_status_overrides_default() {
 fn endpoint_execution_applies_into_response() {
     let mut context = make_context("GET", "/result");
     let metadata = EndpointMetadata::new("GET", "/result");
-    let endpoint = Endpoint::new(
-        EndpointKind::Http(HttpEndpointHandler::new(ValueEndpoint)),
+    let endpoint = Arc::new(HttpEndpoint::new(
+        HttpEndpointHandler::new(ValueEndpoint),
         metadata,
-    );
+    ));
     context.set_endpoint(endpoint);
 
     let mut pipeline = Pipeline::new();
@@ -263,6 +265,7 @@ where
 
 struct ValueEndpoint;
 
+#[async_trait]
 impl HttpHandler for ValueEndpoint {
     async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new("from-endpoint"))

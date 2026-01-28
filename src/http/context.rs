@@ -18,7 +18,7 @@ pub struct HttpContext {
     config: Arc<Configuration>,
     items: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
     route: Option<RouteData>,
-    endpoint: Option<Endpoint>,
+    endpoint: Option<Arc<dyn Endpoint>>,
     response_value: Option<ResponseValue>,
 }
 
@@ -77,11 +77,11 @@ impl HttpContext {
         self.route = Some(route);
     }
 
-    pub fn endpoint(&self) -> Option<&Endpoint> {
+    pub fn endpoint(&self) -> Option<&Arc<dyn Endpoint>> {
         self.endpoint.as_ref()
     }
 
-    pub fn set_endpoint(&mut self, endpoint: Endpoint) {
+    pub fn set_endpoint(&mut self, endpoint: Arc<dyn Endpoint>) {
         self.endpoint = Some(endpoint);
     }
 

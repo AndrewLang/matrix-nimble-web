@@ -1,5 +1,6 @@
 use nimble_web::controller::controller::Controller;
 use nimble_web::endpoint::http_handler::HttpHandler;
+use nimble_web::http::context::HttpContext;
 use nimble_web::http::request_body::RequestBody;
 use nimble_web::http::response_body::ResponseBody;
 use nimble_web::pipeline::pipeline::PipelineError;
@@ -31,13 +32,13 @@ impl FakeDto {
     }
 }
 
+use async_trait::async_trait;
+
 struct TestEndpoint;
 
+#[async_trait]
 impl HttpHandler for TestEndpoint {
-    async fn invoke(
-        &self,
-        _context: &mut nimble_web::http::context::HttpContext,
-    ) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new("ok"))
     }
 }
@@ -55,7 +56,7 @@ fn validator_fails() -> ContextValidator {
     ContextValidator::new(|_context| Err(ValidationError::new("invalid")))
 }
 
-use nimble_web::controller::registry::EndpointRoute;
+use nimble_web::endpoint::route::EndpointRoute;
 
 struct ValidController;
 

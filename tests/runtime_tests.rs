@@ -10,7 +10,7 @@ use nimble_web::result::into_response::ResponseValue;
 
 struct HealthController;
 
-use nimble_web::controller::registry::EndpointRoute;
+use nimble_web::endpoint::route::EndpointRoute;
 
 impl Controller for HealthController {
     fn routes() -> Vec<EndpointRoute> {
@@ -18,8 +18,11 @@ impl Controller for HealthController {
     }
 }
 
+use async_trait::async_trait;
+
 struct HealthHandler;
 
+#[async_trait]
 impl HttpHandler for HealthHandler {
     async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new("ok"))

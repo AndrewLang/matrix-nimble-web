@@ -1,10 +1,11 @@
 use std::sync::{Arc, Mutex};
 
+use async_trait::async_trait;
 use nimble_web::config::ConfigBuilder;
 use nimble_web::di::ServiceContainer;
-use nimble_web::endpoint::endpoint::Endpoint;
+use nimble_web::endpoint::http_endpoint::HttpEndpoint;
+use nimble_web::endpoint::http_endpoint_handler::HttpEndpointHandler;
 use nimble_web::endpoint::http_handler::HttpHandler;
-use nimble_web::endpoint::kind::{EndpointKind, HttpEndpointHandler};
 use nimble_web::endpoint::metadata::EndpointMetadata;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
@@ -36,14 +37,20 @@ impl Trace {
     }
 }
 
+#[derive(Clone)]
 struct TestEndpoint {
     trace: Trace,
 }
 
+#[async_trait]
 impl HttpHandler for TestEndpoint {
-    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         self.trace.push("endpoint");
-        Ok(ResponseValue::new("ok"))
+        let subject = context
+            .get::<IdentityContext>()
+            .map(|id| id.identity().subject().to_string())
+            .unwrap_or_else(|| "anonymous".to_string());
+        Ok(ResponseValue::new(subject))
     }
 }
 
@@ -55,15 +62,26 @@ fn make_context(method: &str, path: &str) -> HttpContext {
 }
 
 #[test]
-fn authentication_attaches_user() {
+fn authenticated_request_populates_identity() {
+    let trace = Trace::new();
     let mut context = make_context("GET", "/secure");
     context
         .request_mut()
         .headers_mut()
         .insert("authorization", "Bearer test-user");
 
+    let metadata = EndpointMetadata::new("GET", "/secure");
+    let endpoint = Arc::new(HttpEndpoint::new(
+        HttpEndpointHandler::new(TestEndpoint {
+            trace: trace.clone(),
+        }),
+        metadata,
+    ));
+    context.set_endpoint(endpoint);
+
     let mut pipeline = Pipeline::new();
     pipeline.add(AuthenticationMiddleware::new());
+    pipeline.add(EndpointExecutionMiddleware::new());
 
     let result = pipeline.run(&mut context);
 
@@ -72,11 +90,21 @@ fn authentication_attaches_user() {
         .get::<IdentityContext>()
         .expect("identity context inserted");
     assert_eq!(identity.identity().subject(), "test-user");
+    assert_eq!(trace.snapshot(), vec!["endpoint"]);
 }
 
 #[test]
 fn missing_auth_header_allows_pipeline_continue() {
+    let trace = Trace::new();
     let mut context = make_context("GET", "/secure");
+    let metadata = EndpointMetadata::new("GET", "/secure");
+    let endpoint = Arc::new(HttpEndpoint::new(
+        HttpEndpointHandler::new(TestEndpoint {
+            trace: trace.clone(),
+        }),
+        metadata,
+    ));
+    context.set_endpoint(endpoint);
 
     let mut pipeline = Pipeline::new();
     pipeline.add(AuthenticationMiddleware::new());
@@ -93,12 +121,12 @@ fn missing_auth_header_allows_pipeline_continue() {
 #[test]
 fn authorization_allows_access_with_policy() {
     let trace = Trace::new();
-    let endpoint = Endpoint::new(
-        EndpointKind::Http(HttpEndpointHandler::new(TestEndpoint {
+    let endpoint = Arc::new(HttpEndpoint::new(
+        HttpEndpointHandler::new(TestEndpoint {
             trace: trace.clone(),
-        })),
+        }),
         EndpointMetadata::new("GET", "/secure").require_policy(Policy::Authenticated),
-    );
+    ));
 
     let mut context = make_context("GET", "/secure");
     context
@@ -122,12 +150,12 @@ fn authorization_allows_access_with_policy() {
 #[test]
 fn authorization_denies_access_without_user() {
     let trace = Trace::new();
-    let endpoint = Endpoint::new(
-        EndpointKind::Http(HttpEndpointHandler::new(TestEndpoint {
+    let endpoint = Arc::new(HttpEndpoint::new(
+        HttpEndpointHandler::new(TestEndpoint {
             trace: trace.clone(),
-        })),
+        }),
         EndpointMetadata::new("GET", "/secure").require_policy(Policy::Authenticated),
-    );
+    ));
 
     let mut context = make_context("GET", "/secure");
     context.set_endpoint(endpoint);
@@ -147,12 +175,12 @@ fn authorization_denies_access_without_user() {
 #[test]
 fn authorization_allows_when_no_policy() {
     let trace = Trace::new();
-    let endpoint = Endpoint::new(
-        EndpointKind::Http(HttpEndpointHandler::new(TestEndpoint {
+    let endpoint = Arc::new(HttpEndpoint::new(
+        HttpEndpointHandler::new(TestEndpoint {
             trace: trace.clone(),
-        })),
+        }),
         EndpointMetadata::new("GET", "/open"),
-    );
+    ));
 
     let mut context = make_context("GET", "/open");
     context.set_endpoint(endpoint.clone());

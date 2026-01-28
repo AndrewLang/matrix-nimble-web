@@ -4,6 +4,7 @@ use nimble_web::app::builder::AppBuilder;
 use nimble_web::background::job::{BackgroundJob, JobContext, JobResult};
 use nimble_web::controller::controller::Controller;
 
+use async_trait::async_trait;
 use nimble_web::di::ServiceContainer;
 use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::http::context::HttpContext;
@@ -20,6 +21,14 @@ use nimble_web::testkit::services::TestServices;
 
 #[derive(Debug, Clone)]
 struct TestEntity {
+    // ... keep TestEntity lines if possible, or just skip them?
+    // I'll assume I can just target imports separately and handler separately.
+    // But I can do valid replacement for whole file parts.
+
+    // I'll split into 2 chunks if I use multi_replace. Or simpler replace.
+    // Adding import at top.
+    // Fixing handler at middle.
+    // I'll use multi_replace.
     id: i64,
 }
 
@@ -37,7 +46,7 @@ impl nimble_web::entity::entity::Entity for TestEntity {
 
 struct HelloController;
 
-use nimble_web::controller::registry::EndpointRoute;
+use nimble_web::endpoint::route::EndpointRoute;
 
 impl Controller for HelloController {
     fn routes() -> Vec<EndpointRoute> {
@@ -47,6 +56,7 @@ impl Controller for HelloController {
 
 struct HelloHandler;
 
+#[async_trait]
 impl HttpHandler for HelloHandler {
     async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new("ok"))

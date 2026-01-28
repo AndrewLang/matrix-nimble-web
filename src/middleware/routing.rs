@@ -37,6 +37,7 @@ impl RoutingMiddleware {
 impl Middleware for RoutingMiddleware {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         if let Some(route_data) = self.router.match_request(context.request()) {
+            log::debug!("Route matched: {}", route_data.route());
             if let Some(registry) = self.controller_registry.as_ref() {
                 if let Some(endpoint) = registry.find_endpoint(route_data.route()) {
                     context.set_endpoint(endpoint);

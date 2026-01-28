@@ -1,22 +1,13 @@
-use crate::endpoint::kind::EndpointKind;
+use std::future::Future;
+use std::pin::Pin;
+
 use crate::endpoint::metadata::EndpointMetadata;
+use crate::http::context::HttpContext;
+use crate::pipeline::pipeline::PipelineError;
 
-#[derive(Clone)]
-pub struct Endpoint {
-    kind: EndpointKind,
-    metadata: EndpointMetadata,
-}
+pub type EndpointFuture<'a> = Pin<Box<dyn Future<Output = Result<(), PipelineError>> + Send + 'a>>;
 
-impl Endpoint {
-    pub fn new(kind: EndpointKind, metadata: EndpointMetadata) -> Self {
-        Self { kind, metadata }
-    }
-
-    pub fn kind(&self) -> &EndpointKind {
-        &self.kind
-    }
-
-    pub fn metadata(&self) -> &EndpointMetadata {
-        &self.metadata
-    }
+pub trait Endpoint: Send + Sync {
+    fn metadata(&self) -> &EndpointMetadata;
+    fn invoke<'a>(&'a self, context: &'a mut HttpContext) -> EndpointFuture<'a>;
 }

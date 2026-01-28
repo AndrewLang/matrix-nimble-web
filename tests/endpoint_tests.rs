@@ -1,11 +1,14 @@
 use std::sync::{Arc, Mutex};
 
+use async_trait::async_trait;
 use nimble_web::config::ConfigBuilder;
 use nimble_web::di::ServiceContainer;
-use nimble_web::endpoint::endpoint::Endpoint;
+use nimble_web::endpoint::http_endpoint::HttpEndpoint;
+use nimble_web::endpoint::http_endpoint_handler::HttpEndpointHandler;
 use nimble_web::endpoint::http_handler::HttpHandler;
-use nimble_web::endpoint::kind::{EndpointKind, HttpEndpointHandler, WebSocketHandler};
 use nimble_web::endpoint::metadata::EndpointMetadata;
+use nimble_web::endpoint::websocket_endpoint::WebSocketEndpoint;
+use nimble_web::endpoint::websocket_endpoint_handler::WebSocketEndpointHandler;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
 use nimble_web::http::response::HttpResponse;
@@ -45,6 +48,7 @@ struct RecordingEndpoint {
     status: u16,
 }
 
+#[async_trait]
 impl HttpHandler for RecordingEndpoint {
     async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         self.trace.push("handled");
@@ -58,6 +62,7 @@ struct ParamEndpoint {
     trace: Trace,
 }
 
+#[async_trait]
 impl HttpHandler for ParamEndpoint {
     async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         let id = context
@@ -74,6 +79,7 @@ impl HttpHandler for ParamEndpoint {
 
 struct ErrorEndpoint;
 
+#[async_trait]
 impl HttpHandler for ErrorEndpoint {
     async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Err(PipelineError::message("boom"))
@@ -84,6 +90,7 @@ struct MarkerMiddleware {
     trace: Trace,
 }
 
+#[allow(async_fn_in_trait)]
 impl Middleware for MarkerMiddleware {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         self.trace.push("after");
@@ -109,10 +116,10 @@ fn http_endpoint_execution_invokes_handler() {
 
     let mut context = make_context("GET", "/photos");
     let metadata = EndpointMetadata::new("GET", "/photos");
-    let endpoint = Endpoint::new(
-        EndpointKind::Http(HttpEndpointHandler::new(endpoint)),
+    let endpoint = Arc::new(HttpEndpoint::new(
+        HttpEndpointHandler::new(endpoint),
         metadata,
-    );
+    ));
     context.set_endpoint(endpoint);
 
     let mut pipeline = Pipeline::new();
@@ -154,10 +161,10 @@ fn http_endpoint_execution_continues_pipeline() {
 
     let mut context = make_context("GET", "/photos");
     let metadata = EndpointMetadata::new("GET", "/photos");
-    let endpoint = Endpoint::new(
-        EndpointKind::Http(HttpEndpointHandler::new(endpoint)),
+    let endpoint = Arc::new(HttpEndpoint::new(
+        HttpEndpointHandler::new(endpoint),
         metadata,
-    );
+    ));
     context.set_endpoint(endpoint);
 
     let mut pipeline = Pipeline::new();
@@ -179,7 +186,7 @@ fn websocket_endpoint_is_ignored() {
 
     let mut context = make_context("GET", "/ws");
     let metadata = EndpointMetadata::new("GET", "/ws");
-    let endpoint = Endpoint::new(EndpointKind::WebSocket(WebSocketHandler), metadata);
+    let endpoint = Arc::new(WebSocketEndpoint::new(WebSocketEndpointHandler, metadata));
     context.set_endpoint(endpoint);
 
     let mut pipeline = Pipeline::new();
@@ -207,10 +214,10 @@ fn endpoint_executes_after_routing_and_sees_params() {
 
     let mut context = make_context("GET", "/photos/123");
     let metadata = EndpointMetadata::new("GET", "/photos/{id}");
-    let endpoint = Endpoint::new(
-        EndpointKind::Http(HttpEndpointHandler::new(endpoint)),
+    let endpoint = Arc::new(HttpEndpoint::new(
+        HttpEndpointHandler::new(endpoint),
         metadata,
-    );
+    ));
     context.set_endpoint(endpoint);
 
     let mut pipeline = Pipeline::new();
@@ -229,10 +236,10 @@ fn endpoint_error_propagates_and_stops_pipeline() {
 
     let mut context = make_context("GET", "/photos");
     let metadata = EndpointMetadata::new("GET", "/photos");
-    let endpoint = Endpoint::new(
-        EndpointKind::Http(HttpEndpointHandler::new(ErrorEndpoint)),
+    let endpoint = Arc::new(HttpEndpoint::new(
+        HttpEndpointHandler::new(ErrorEndpoint),
         metadata,
-    );
+    ));
     context.set_endpoint(endpoint);
 
     let mut pipeline = Pipeline::new();

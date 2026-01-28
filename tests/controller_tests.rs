@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
+use async_trait::async_trait;
 use nimble_web::config::ConfigBuilder;
 use nimble_web::controller::controller::Controller;
 use nimble_web::controller::invoker::ControllerInvokerMiddleware;
@@ -53,7 +54,7 @@ fn test_trace() -> Trace {
     TEST_TRACE.with(|cell| cell.borrow().clone().expect("test trace set"))
 }
 
-use nimble_web::controller::registry::EndpointRoute;
+use nimble_web::endpoint::route::EndpointRoute;
 
 struct TestController;
 
@@ -80,10 +81,12 @@ impl Controller for ErrorController {
     }
 }
 
+#[derive(Clone)]
 struct TestEndpoint {
     trace: Trace,
 }
 
+#[async_trait]
 impl HttpHandler for TestEndpoint {
     async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         self.trace.push("invoked");
@@ -93,6 +96,7 @@ impl HttpHandler for TestEndpoint {
 
 struct ParamEndpoint;
 
+#[async_trait]
 impl HttpHandler for ParamEndpoint {
     async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         let id = context
@@ -106,10 +110,10 @@ impl HttpHandler for ParamEndpoint {
 
 struct ErrorEndpoint;
 
+#[async_trait]
 impl HttpHandler for ErrorEndpoint {
     async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
-        let error = HttpError::new(404, "not found");
-        Ok(ResponseValue::new(error))
+        Ok(ResponseValue::new(HttpError::new(404, "not found")))
     }
 }
 

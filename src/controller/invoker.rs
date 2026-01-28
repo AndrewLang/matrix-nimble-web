@@ -1,8 +1,9 @@
+use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::controller::registry::ControllerRegistry;
+use crate::endpoint::http_endpoint_handler::HttpEndpointHandler;
 use crate::endpoint::http_handler::HttpHandler;
-use crate::endpoint::kind::HttpEndpointHandler;
 use crate::http::context::HttpContext;
 use crate::pipeline::middleware::Middleware;
 use crate::pipeline::next::Next;
@@ -39,6 +40,7 @@ struct ControllerHandler<C, F> {
     func: Arc<F>,
 }
 
+#[async_trait]
 impl<C, F, R> HttpHandler for ControllerHandler<C, F>
 where
     C: Send + Sync + 'static,

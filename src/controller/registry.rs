@@ -1,84 +1,20 @@
+use std::sync::Arc;
+
 use crate::controller::controller::Controller;
 use crate::endpoint::endpoint::Endpoint;
+use crate::endpoint::http_endpoint::HttpEndpoint;
+use crate::endpoint::http_endpoint_handler::HttpEndpointHandler;
 use crate::endpoint::http_handler::HttpHandler;
-use crate::endpoint::kind::{EndpointKind, HttpEndpointHandler};
 use crate::endpoint::metadata::EndpointMetadata;
 
 use crate::routing::route::Route;
 use crate::security::policy::Policy;
 
-pub struct EndpointRoute {
-    pub route: Route,
-    pub endpoint: Endpoint,
-}
-
-impl EndpointRoute {
-    pub fn new(route: Route, endpoint: Endpoint) -> Self {
-        Self { route, endpoint }
-    }
-
-    pub fn get<H>(path: &str, handler: H) -> RouteBuilder
-    where
-        H: HttpHandler + Send + Sync + 'static,
-    {
-        RouteBuilder::new("GET", path, handler)
-    }
-
-    pub fn post<H>(path: &str, handler: H) -> RouteBuilder
-    where
-        H: HttpHandler + Send + Sync + 'static,
-    {
-        RouteBuilder::new("POST", path, handler)
-    }
-}
+use crate::endpoint::route::EndpointRoute;
 
 pub struct ControllerRegistry {
     routes: Vec<Route>,
-    endpoints: Vec<Endpoint>,
-}
-
-pub struct RouteBuilder {
-    method: &'static str,
-    path: String,
-    endpoint: Endpoint,
-}
-
-impl RouteBuilder {
-    pub fn new<H>(method: &'static str, path: &str, handler: H) -> Self
-    where
-        H: HttpHandler + Send + Sync + 'static,
-    {
-        let metadata = EndpointMetadata::new(method, path);
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(handler)),
-            metadata,
-        );
-        Self {
-            method,
-            path: path.to_string(),
-            endpoint,
-        }
-    }
-
-    pub fn validate<T>(mut self, validator: T) -> Self
-    where
-        T: crate::validation::AnyValidator + 'static,
-    {
-        let metadata = self.endpoint.metadata().clone().add_validator(validator);
-        self.endpoint = Endpoint::new(self.endpoint.kind().clone(), metadata);
-        self
-    }
-
-    pub fn with_policy(mut self, policy: Policy) -> Self {
-        let metadata = self.endpoint.metadata().clone().require_policy(policy);
-        self.endpoint = Endpoint::new(self.endpoint.kind().clone(), metadata);
-        self
-    }
-
-    pub fn build(self) -> EndpointRoute {
-        let route = Route::new(self.method, &self.path);
-        EndpointRoute::new(route, self.endpoint)
-    }
+    endpoints: Vec<Arc<dyn Endpoint>>,
 }
 
 impl ControllerRegistry {
@@ -99,10 +35,10 @@ impl ControllerRegistry {
     {
         let route = Route::new(method, path);
         let metadata = EndpointMetadata::new(method, path);
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(handler)),
+        let endpoint = Arc::new(HttpEndpoint::new(
+            HttpEndpointHandler::new(handler),
             metadata,
-        );
+        ));
         self.add_route(route, endpoint);
     }
 
@@ -112,14 +48,14 @@ impl ControllerRegistry {
     {
         let route = Route::new(method, path);
         let metadata = EndpointMetadata::new(method, path).require_policy(policy);
-        let endpoint = Endpoint::new(
-            EndpointKind::Http(HttpEndpointHandler::new(handler)),
+        let endpoint = Arc::new(HttpEndpoint::new(
+            HttpEndpointHandler::new(handler),
             metadata,
-        );
+        ));
         self.add_route(route, endpoint);
     }
 
-    pub fn add_route(&mut self, route: Route, endpoint: Endpoint) {
+    pub fn add_route(&mut self, route: Route, endpoint: Arc<dyn Endpoint>) {
         self.routes.push(route);
         self.endpoints.push(endpoint);
     }
@@ -132,11 +68,11 @@ impl ControllerRegistry {
         &self.routes
     }
 
-    pub fn endpoints(&self) -> &[Endpoint] {
+    pub fn endpoints(&self) -> &[Arc<dyn Endpoint>] {
         &self.endpoints
     }
 
-    pub fn find_endpoint(&self, route: &Route) -> Option<Endpoint> {
+    pub fn find_endpoint(&self, route: &Route) -> Option<Arc<dyn Endpoint>> {
         self.routes
             .iter()
             .position(|candidate| candidate == route)

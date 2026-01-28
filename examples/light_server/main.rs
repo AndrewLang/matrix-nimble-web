@@ -75,9 +75,7 @@ impl Entity for User {
     }
 }
 
-use nimble_web::controller::registry::EndpointRoute;
-
-// ...
+use nimble_web::endpoint::route::EndpointRoute;
 
 struct ApiController;
 
@@ -105,6 +103,9 @@ impl Controller for ApiController {
 
 struct HealthHandler;
 
+use async_trait::async_trait;
+
+#[async_trait]
 impl HttpHandler for HealthHandler {
     async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new(Json(Health { status: "ok" })))
@@ -113,6 +114,7 @@ impl HttpHandler for HealthHandler {
 
 struct ListPhotosHandler;
 
+#[async_trait]
 impl HttpHandler for ListPhotosHandler {
     async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new(Json(vec![Photo {
@@ -124,6 +126,7 @@ impl HttpHandler for ListPhotosHandler {
 
 struct GetPhotoHandler;
 
+#[async_trait]
 impl HttpHandler for GetPhotoHandler {
     async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         let id = context
@@ -140,6 +143,7 @@ impl HttpHandler for GetPhotoHandler {
 
 struct CreatePhotoHandler;
 
+#[async_trait]
 impl HttpHandler for CreatePhotoHandler {
     async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         let payload: CreatePhoto = context
@@ -162,6 +166,7 @@ impl HttpHandler for CreatePhotoHandler {
 
 struct SecureHandler;
 
+#[async_trait]
 impl HttpHandler for SecureHandler {
     async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         let subject = context
@@ -199,7 +204,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .use_in_memory_job_queue()
         .use_controller::<ApiController>()
         .use_entity::<PhotoEntity>()
-        .use_entity::<User>();
+        .use_entity::<User>()
+        .route_get("/api/health", HealthHandler);
 
     let app = builder.build();
 

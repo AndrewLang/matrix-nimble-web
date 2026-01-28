@@ -9,6 +9,8 @@ use crate::config::ConfigBuilder;
 use crate::controller::controller::Controller;
 use crate::controller::registry::ControllerRegistry;
 use crate::di::ServiceContainer;
+use crate::endpoint::http_handler::HttpHandler;
+use crate::endpoint::route::EndpointRouteRegistry;
 use crate::entity::entity::Entity;
 use crate::entity::registry::EntityRegistry;
 use crate::middleware::endpoint_exec::EndpointExecutionMiddleware;
@@ -27,6 +29,7 @@ use crate::redis::RedisModule;
 pub struct AppBuilder {
     pipeline: Pipeline,
     controller_registry: ControllerRegistry,
+    route_registry: EndpointRouteRegistry,
     router: DefaultRouter,
     services: ServiceContainer,
     hosted_services: HostedServiceHost,
@@ -47,6 +50,7 @@ impl AppBuilder {
         Self {
             pipeline: Pipeline::new(),
             controller_registry: ControllerRegistry::new(),
+            route_registry: EndpointRouteRegistry::new(),
             router: DefaultRouter::new(),
             services: ServiceContainer::new(),
             hosted_services: HostedServiceHost::new(),
@@ -55,6 +59,10 @@ impl AppBuilder {
             address: None,
             config_builder: ConfigBuilder::new(),
         }
+    }
+
+    pub fn routes(&mut self) -> &mut EndpointRouteRegistry {
+        &mut self.route_registry
     }
 
     pub fn use_middleware<M: Middleware + 'static>(&mut self, middleware: M) -> &mut Self {
@@ -161,7 +169,8 @@ impl AppBuilder {
     pub fn build(self) -> Application {
         let AppBuilder {
             pipeline,
-            controller_registry,
+            mut controller_registry,
+            route_registry,
             mut router,
             mut services,
             hosted_services,
@@ -171,6 +180,10 @@ impl AppBuilder {
             config_builder,
         } = self;
 
+        for endpoint_route in route_registry.routes {
+            controller_registry.add_endpoint_route(endpoint_route);
+        }
+
         for route in controller_registry.routes() {
             router.add_route(route.clone());
         }
@@ -179,8 +192,8 @@ impl AppBuilder {
         let controller_registry = Arc::new(controller_registry);
         let entity_registry = Arc::new(entity_registry);
         services.register_singleton::<Arc<EntityRegistry>, _>(move |_| entity_registry.clone());
-        let config = config_builder.build();
 
+        let config = config_builder.build();
         #[cfg(feature = "redis")]
         RedisModule::register(&mut services, &config);
 
@@ -194,14 +207,15 @@ impl AppBuilder {
         };
         let address = address.unwrap_or_else(|| "0.0.0.0:8080".to_string());
         let pipeline = if has_routes {
-            let mut middleware: Vec<Box<dyn DynMiddleware>> = Vec::new();
-            middleware.push(Box::new(RoutingMiddleware::with_registry(
+            let mut middlewares: Vec<Box<dyn DynMiddleware>> = Vec::new();
+            middlewares.push(Box::new(RoutingMiddleware::with_registry(
                 router.clone(),
                 Arc::clone(&controller_registry),
             )));
-            middleware.extend(pipeline.into_middleware());
-            middleware.push(Box::new(EndpointExecutionMiddleware::new()));
-            Pipeline::from_middleware(middleware)
+            middlewares.extend(pipeline.into_middleware());
+            middlewares.push(Box::new(EndpointExecutionMiddleware::new()));
+
+            Pipeline::from_middleware(middlewares)
         } else {
             pipeline
         };
@@ -219,5 +233,39 @@ impl AppBuilder {
 
     pub(crate) fn entity_registry_clone(&self) -> EntityRegistry {
         EntityRegistry::from_registry(&self.entity_registry)
+    }
+}
+
+impl AppBuilder {
+    pub fn route_get<H>(&mut self, path: &str, handler: H) -> &mut Self
+    where
+        H: HttpHandler + Send + Sync + 'static,
+    {
+        self.route_registry.get(path, handler);
+        self
+    }
+
+    pub fn route_post<H>(&mut self, path: &str, handler: H) -> &mut Self
+    where
+        H: HttpHandler + Send + Sync + 'static,
+    {
+        self.route_registry.post(path, handler);
+        self
+    }
+
+    pub fn route_put<H>(&mut self, path: &str, handler: H) -> &mut Self
+    where
+        H: HttpHandler + Send + Sync + 'static,
+    {
+        self.route_registry.put(path, handler);
+        self
+    }
+
+    pub fn route_delete<H>(&mut self, path: &str, handler: H) -> &mut Self
+    where
+        H: HttpHandler + Send + Sync + 'static,
+    {
+        self.route_registry.delete(path, handler);
+        self
     }
 }

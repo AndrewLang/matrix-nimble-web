@@ -1,5 +1,9 @@
 pub mod endpoint;
+pub mod http_endpoint;
+pub mod http_endpoint_handler;
 pub mod http_handler;
-pub mod kind;
 pub mod metadata;
+pub mod route;
+pub mod websocket_endpoint;
+pub mod websocket_endpoint_handler;
 pub mod ws_handler;
