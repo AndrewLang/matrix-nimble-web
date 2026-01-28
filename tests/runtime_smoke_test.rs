@@ -4,17 +4,19 @@ mod runtime_smoke {
 
     use nimble_web::app::builder::AppBuilder;
     use nimble_web::controller::controller::Controller;
-    use nimble_web::controller::registry::ControllerRegistry;
     use nimble_web::endpoint::http_handler::HttpHandler;
+    use nimble_web::endpoint::registry::EndpointRegistry;
     use nimble_web::http::context::HttpContext;
     use nimble_web::pipeline::pipeline::PipelineError;
     use nimble_web::result::into_response::ResponseValue;
 
     struct HealthController;
 
+    use nimble_web::endpoint::route::EndpointRoute;
+
     impl Controller for HealthController {
-        fn register(registry: &mut ControllerRegistry) {
-            registry.add("GET", "/health", HealthHandler);
+        fn routes() -> Vec<EndpointRoute> {
+            vec![EndpointRoute::get("/health", HealthHandler).build()]
         }
     }
 
@@ -31,7 +33,7 @@ mod runtime_smoke {
     async fn runtime_smoke_test() {
         let mut builder = AppBuilder::new();
         builder.use_address("127.0.0.1:0");
-        builder.add_controller::<HealthController>();
+        builder.use_controller::<HealthController>();
 
         let app = builder.build();
         std::env::remove_var("NIMBLE_BOUND_ADDRESS");

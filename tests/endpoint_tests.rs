@@ -7,8 +7,8 @@ use nimble_web::endpoint::http_endpoint::HttpEndpoint;
 use nimble_web::endpoint::http_endpoint_handler::HttpEndpointHandler;
 use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::endpoint::metadata::EndpointMetadata;
-use nimble_web::endpoint::websocket_endpoint::WebSocketEndpoint;
-use nimble_web::endpoint::websocket_endpoint_handler::WebSocketEndpointHandler;
+use nimble_web::endpoint::ws_endpoint::WsEndpoint;
+use nimble_web::endpoint::ws_endpoint_handler::WsEndpointHandler;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
 use nimble_web::http::response::HttpResponse;
@@ -186,7 +186,7 @@ fn websocket_endpoint_is_ignored() {
 
     let mut context = make_context("GET", "/ws");
     let metadata = EndpointMetadata::new("GET", "/ws");
-    let endpoint = Arc::new(WebSocketEndpoint::new(WebSocketEndpointHandler, metadata));
+    let endpoint = Arc::new(WsEndpoint::new(WsEndpointHandler, metadata));
     context.set_endpoint(endpoint);
 
     let mut pipeline = Pipeline::new();

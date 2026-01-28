@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use std::sync::Arc;
 
-use crate::controller::registry::ControllerRegistry;
 use crate::endpoint::http_endpoint_handler::HttpEndpointHandler;
 use crate::endpoint::http_handler::HttpHandler;
+use crate::endpoint::registry::EndpointRegistry;
 use crate::http::context::HttpContext;
 use crate::pipeline::middleware::Middleware;
 use crate::pipeline::next::Next;
@@ -54,11 +54,11 @@ where
 }
 
 pub struct ControllerInvokerMiddleware {
-    registry: Arc<ControllerRegistry>,
+    registry: Arc<EndpointRegistry>,
 }
 
 impl ControllerInvokerMiddleware {
-    pub fn new(registry: Arc<ControllerRegistry>) -> Self {
+    pub fn new(registry: Arc<EndpointRegistry>) -> Self {
         Self { registry }
     }
 }

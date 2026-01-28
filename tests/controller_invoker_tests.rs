@@ -3,11 +3,11 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use nimble_web::config::ConfigBuilder;
 use nimble_web::controller::invoker::{ControllerInvoker, ControllerInvokerMiddleware};
-use nimble_web::controller::registry::ControllerRegistry;
 use nimble_web::di::ServiceContainer;
 use nimble_web::endpoint::http_endpoint::HttpEndpoint;
 use nimble_web::endpoint::http_endpoint_handler::HttpEndpointHandler;
 use nimble_web::endpoint::metadata::EndpointMetadata;
+use nimble_web::endpoint::registry::EndpointRegistry;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
 use nimble_web::middleware::endpoint_exec::EndpointExecutionMiddleware;
@@ -51,7 +51,7 @@ fn controller_invoker_handler_builds_endpoint_handler() {
 
 #[test]
 fn controller_invoker_middleware_sets_endpoint_from_registry() {
-    let mut registry = ControllerRegistry::new();
+    let mut registry = EndpointRegistry::new();
     let metadata = EndpointMetadata::new("GET", "/items");
     let endpoint = Arc::new(HttpEndpoint::new(
         HttpEndpointHandler::new(NullHandler),

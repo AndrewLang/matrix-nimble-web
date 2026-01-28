@@ -47,53 +47,6 @@ impl EndpointRoute {
     }
 }
 
-pub struct EndpointRouteRegistry {
-    pub routes: Vec<EndpointRoute>,
-}
-
-impl EndpointRouteRegistry {
-    pub fn new() -> Self {
-        Self { routes: Vec::new() }
-    }
-
-    pub fn get<H>(&mut self, path: &str, handler: H)
-    where
-        H: HttpHandler + Send + Sync + 'static,
-    {
-        self.add("GET", path, handler);
-    }
-
-    pub fn post<H>(&mut self, path: &str, handler: H)
-    where
-        H: HttpHandler + Send + Sync + 'static,
-    {
-        self.add("POST", path, handler);
-    }
-
-    pub fn put<H>(&mut self, path: &str, handler: H)
-    where
-        H: HttpHandler + Send + Sync + 'static,
-    {
-        self.add("PUT", path, handler);
-    }
-
-    pub fn delete<H>(&mut self, path: &str, handler: H)
-    where
-        H: HttpHandler + Send + Sync + 'static,
-    {
-        self.add("DELETE", path, handler);
-    }
-
-    fn add<H>(&mut self, method: &'static str, path: &str, handler: H)
-    where
-        H: HttpHandler + Send + Sync + 'static,
-    {
-        let route = RouteBuilder::new(method, path, handler).build();
-
-        self.routes.push(route);
-    }
-}
-
 pub struct RouteBuilder {
     method: &'static str,
     path: String,

@@ -5,9 +5,9 @@ use async_trait::async_trait;
 use nimble_web::config::ConfigBuilder;
 use nimble_web::controller::controller::Controller;
 use nimble_web::controller::invoker::ControllerInvokerMiddleware;
-use nimble_web::controller::registry::ControllerRegistry;
 use nimble_web::di::ServiceContainer;
 use nimble_web::endpoint::http_handler::HttpHandler;
+use nimble_web::endpoint::registry::EndpointRegistry;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
 use nimble_web::http::response_body::ResponseBody;
@@ -128,7 +128,7 @@ fn make_context(method: &str, path: &str) -> HttpContext {
 fn controller_registration_adds_routes_and_endpoints() {
     let trace = Trace::new();
     set_test_trace(trace.clone());
-    let mut registry = ControllerRegistry::new();
+    let mut registry = EndpointRegistry::new();
 
     registry.register::<TestController>();
 
@@ -140,7 +140,7 @@ fn controller_registration_adds_routes_and_endpoints() {
 fn controller_action_invocation_populates_response() {
     let trace = Trace::new();
     set_test_trace(trace.clone());
-    let mut registry = ControllerRegistry::new();
+    let mut registry = EndpointRegistry::new();
     registry.register::<TestController>();
 
     let mut router = DefaultRouter::new();
@@ -168,7 +168,7 @@ fn controller_action_invocation_populates_response() {
 
 #[test]
 fn route_params_passed_to_controller() {
-    let mut registry = ControllerRegistry::new();
+    let mut registry = EndpointRegistry::new();
     registry.register::<ParamController>();
 
     let mut router = DefaultRouter::new();
@@ -197,7 +197,7 @@ fn multiple_controllers_register_routes_without_conflicts() {
     let trace = Trace::new();
     set_test_trace(trace.clone());
 
-    let mut registry = ControllerRegistry::new();
+    let mut registry = EndpointRegistry::new();
     registry.register::<TestController>();
     registry.register::<ParamController>();
 
@@ -206,7 +206,7 @@ fn multiple_controllers_register_routes_without_conflicts() {
 
 #[test]
 fn controller_error_propagates() {
-    let mut registry = ControllerRegistry::new();
+    let mut registry = EndpointRegistry::new();
     registry.register::<ErrorController>();
 
     let mut router = DefaultRouter::new();

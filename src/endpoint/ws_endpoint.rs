@@ -1,16 +1,16 @@
 use crate::endpoint::endpoint::{Endpoint, EndpointFuture};
 use crate::endpoint::metadata::EndpointMetadata;
-use crate::endpoint::websocket_endpoint_handler::WebSocketEndpointHandler;
+use crate::endpoint::ws_endpoint_handler::WsEndpointHandler;
 use crate::http::context::HttpContext;
 
 #[derive(Clone)]
-pub struct WebSocketEndpoint {
-    _handler: WebSocketEndpointHandler,
+pub struct WsEndpoint {
+    _handler: WsEndpointHandler,
     metadata: EndpointMetadata,
 }
 
-impl WebSocketEndpoint {
-    pub fn new(handler: WebSocketEndpointHandler, metadata: EndpointMetadata) -> Self {
+impl WsEndpoint {
+    pub fn new(handler: WsEndpointHandler, metadata: EndpointMetadata) -> Self {
         Self {
             _handler: handler,
             metadata,
@@ -18,7 +18,7 @@ impl WebSocketEndpoint {
     }
 }
 
-impl Endpoint for WebSocketEndpoint {
+impl Endpoint for WsEndpoint {
     fn metadata(&self) -> &EndpointMetadata {
         &self.metadata
     }

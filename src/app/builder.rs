@@ -7,10 +7,9 @@ use crate::background::in_memory_queue::InMemoryJobQueue;
 use crate::background::job_queue::JobQueue;
 use crate::config::ConfigBuilder;
 use crate::controller::controller::Controller;
-use crate::controller::registry::ControllerRegistry;
 use crate::di::ServiceContainer;
 use crate::endpoint::http_handler::HttpHandler;
-use crate::endpoint::route::EndpointRouteRegistry;
+use crate::endpoint::registry::EndpointRegistry;
 use crate::entity::entity::Entity;
 use crate::entity::registry::EntityRegistry;
 use crate::middleware::endpoint_exec::EndpointExecutionMiddleware;
@@ -28,8 +27,7 @@ use crate::redis::RedisModule;
 
 pub struct AppBuilder {
     pipeline: Pipeline,
-    controller_registry: ControllerRegistry,
-    route_registry: EndpointRouteRegistry,
+    endpoint_registry: EndpointRegistry,
     router: DefaultRouter,
     services: ServiceContainer,
     hosted_services: HostedServiceHost,
@@ -49,8 +47,7 @@ impl AppBuilder {
     pub fn new() -> Self {
         Self {
             pipeline: Pipeline::new(),
-            controller_registry: ControllerRegistry::new(),
-            route_registry: EndpointRouteRegistry::new(),
+            endpoint_registry: EndpointRegistry::new(),
             router: DefaultRouter::new(),
             services: ServiceContainer::new(),
             hosted_services: HostedServiceHost::new(),
@@ -61,8 +58,8 @@ impl AppBuilder {
         }
     }
 
-    pub fn routes(&mut self) -> &mut EndpointRouteRegistry {
-        &mut self.route_registry
+    pub fn routes(&mut self) -> &mut EndpointRegistry {
+        &mut self.endpoint_registry
     }
 
     pub fn use_middleware<M: Middleware + 'static>(&mut self, middleware: M) -> &mut Self {
@@ -73,7 +70,7 @@ impl AppBuilder {
     pub fn use_controller<T: Controller>(&mut self) -> &mut Self {
         let routes = T::routes();
         for route in routes {
-            self.controller_registry.add_endpoint_route(route);
+            self.endpoint_registry.add_endpoint_route(route);
         }
         self
     }
@@ -169,8 +166,7 @@ impl AppBuilder {
     pub fn build(self) -> Application {
         let AppBuilder {
             pipeline,
-            mut controller_registry,
-            route_registry,
+            endpoint_registry,
             mut router,
             mut services,
             hosted_services,
@@ -180,16 +176,12 @@ impl AppBuilder {
             config_builder,
         } = self;
 
-        for endpoint_route in route_registry.routes {
-            controller_registry.add_endpoint_route(endpoint_route);
-        }
-
-        for route in controller_registry.routes() {
+        for route in endpoint_registry.routes() {
             router.add_route(route.clone());
         }
 
-        let has_routes = !controller_registry.routes().is_empty();
-        let controller_registry = Arc::new(controller_registry);
+        let has_routes = !endpoint_registry.routes().is_empty();
+        let endpoint_registry = Arc::new(endpoint_registry);
         let entity_registry = Arc::new(entity_registry);
         services.register_singleton::<Arc<EntityRegistry>, _>(move |_| entity_registry.clone());
 
@@ -210,7 +202,7 @@ impl AppBuilder {
             let mut middlewares: Vec<Box<dyn DynMiddleware>> = Vec::new();
             middlewares.push(Box::new(RoutingMiddleware::with_registry(
                 router.clone(),
-                Arc::clone(&controller_registry),
+                Arc::clone(&endpoint_registry),
             )));
             middlewares.extend(pipeline.into_middleware());
             middlewares.push(Box::new(EndpointExecutionMiddleware::new()));
@@ -241,7 +233,7 @@ impl AppBuilder {
     where
         H: HttpHandler + Send + Sync + 'static,
     {
-        self.route_registry.get(path, handler);
+        self.endpoint_registry.get(path, handler);
         self
     }
 
@@ -249,7 +241,7 @@ impl AppBuilder {
     where
         H: HttpHandler + Send + Sync + 'static,
     {
-        self.route_registry.post(path, handler);
+        self.endpoint_registry.post(path, handler);
         self
     }
 
@@ -257,7 +249,7 @@ impl AppBuilder {
     where
         H: HttpHandler + Send + Sync + 'static,
     {
-        self.route_registry.put(path, handler);
+        self.endpoint_registry.put(path, handler);
         self
     }
 
@@ -265,7 +257,7 @@ impl AppBuilder {
     where
         H: HttpHandler + Send + Sync + 'static,
     {
-        self.route_registry.delete(path, handler);
+        self.endpoint_registry.delete(path, handler);
         self
     }
 }
