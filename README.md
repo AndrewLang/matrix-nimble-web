@@ -50,3 +50,90 @@ async fn snapshot(cache: &RedisCache, lock: &RedisLock) {
     lock.unlock("photos:write", &token.unwrap()).await.unwrap();
 }
 ```
+
+## Postgres support *(optional)*
+
+Enable Postgres extensions via `cargo build --features postgres` / `cargo test --features postgres`.
+
+### Sample usage
+
+```rust
+use nimble_web::AppBuilder;
+use nimble_web::data::postgres::PostgresEntity;
+use nimble_web::data::schema::{ColumnDef, ColumnType};
+use nimble_web::data::query::Value;
+use nimble_web::entity::entity::Entity;
+use serde::{Deserialize, Serialize};
+
+// 1. Define your entity
+#[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
+pub struct User {
+    pub id: i64,
+    pub username: String,
+    pub email: String,
+}
+
+// 2. Implement Entity trait (core)
+impl Entity for User {
+    type Id = i64;
+    fn id(&self) -> &i64 { &self.id }
+    fn name() -> &'static str { "user" }
+    fn plural_name() -> String { "users".to_string() }
+}
+
+// 3. Implement PostgresEntity
+impl PostgresEntity for User {
+    fn id_column() -> &'static str { "id" }
+    fn id_value(id: &i64) -> Value { Value::Int(*id) }
+    
+    // Columns to insert
+    fn insert_columns() -> &'static [&'static str] { &["id", "username", "email"] }
+    fn insert_values(&self) -> Vec<Value> {
+        vec![Value::Int(self.id), Value::String(self.username.clone()), Value::String(self.email.clone())]
+    }
+
+    // Columns to update
+    fn update_columns() -> &'static [&'static str] { &["username", "email"] }
+    fn update_values(&self) -> Vec<Value> {
+        vec![Value::String(self.username.clone()), Value::String(self.email.clone())]
+    }
+
+    // Schema definition for migration
+    fn table_columns() -> Vec<ColumnDef> {
+        vec![
+            ColumnDef::new("id", ColumnType::Integer).primary_key(),
+            ColumnDef::new("username", ColumnType::Text).not_null().unique(),
+            ColumnDef::new("email", ColumnType::Text).not_null(),
+        ]
+    }
+}
+
+// 4. Run migration
+// 4. Integrate with AppBuilder
+#[tokio::main]
+async fn main() {
+    // Application will load config from environment variables (NIMBLE_POSTGRES_URL)
+    let mut builder = AppBuilder::new();
+    
+    // Load environment variables (e.g. NIMBLE_POSTGRES_URL=postgres://...)
+    builder.use_env();
+    
+    // Enable Postgres (uses configuration)
+    builder.use_postgres();
+    
+    // Register entity routes (CRUD)
+    builder.use_entity::<User>();
+
+    let app = builder.build();
+
+    // Run migration at startup (optional)
+    app.migrate_entity::<User>().await.expect("migration failed");
+
+    app.start().await.expect("app failed");
+}
+```
+
+Configuration keys:
+- `postgres.url`: Connection string (default: `postgres://postgres:postgres@localhost:5432/postgres`)
+- `postgres.pool_size`: Max connections (default: 10)
+- `postgres.schema`: Optional schema prefix

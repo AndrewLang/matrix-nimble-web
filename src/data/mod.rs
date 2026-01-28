@@ -8,3 +8,4 @@ pub mod provider;
 pub mod query;
 pub mod query_builder;
 pub mod repository;
+pub mod schema;

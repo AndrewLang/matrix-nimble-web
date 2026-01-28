@@ -21,11 +21,14 @@ pub use crate::data::memory_repository::*;
 pub use crate::data::mongo::*;
 pub use crate::data::paging::*;
 #[cfg(feature = "postgres")]
+pub use crate::data::postgres::migration::*;
+#[cfg(feature = "postgres")]
 pub use crate::data::postgres::*;
 pub use crate::data::provider::*;
 pub use crate::data::query::*;
 pub use crate::data::query_builder::*;
 pub use crate::data::repository::*;
+pub use crate::data::schema::*;
 pub use crate::di::*;
 pub use crate::endpoint::endpoint::*;
 pub use crate::endpoint::http_endpoint::*;

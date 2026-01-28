@@ -4,6 +4,8 @@ pub mod env;
 pub mod file;
 pub mod source;
 
+#[cfg(feature = "postgres")]
+pub mod postgres;
 #[cfg(feature = "redis")]
 pub mod redis;
 

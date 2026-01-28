@@ -260,6 +260,39 @@ impl AppBuilder {
     }
 }
 
+#[cfg(feature = "postgres")]
+impl AppBuilder {
+    pub fn use_postgres(&mut self) -> &mut Self {
+        self.services.register_singleton(|provider| {
+            let config = provider
+                .resolve::<Configuration>()
+                .expect("configuration not registered");
+            let pg_config = config.postgres_config();
+
+            sqlx::postgres::PgPoolOptions::new()
+                .max_connections(pg_config.pool_size)
+                .connect_lazy(&pg_config.url)
+                .expect("invalid postgres configuration")
+        });
+
+        self.services.register_singleton(|provider| {
+            let config = provider
+                .resolve::<Configuration>()
+                .expect("configuration not registered");
+            config.postgres_config()
+        });
+
+        self.services.register_singleton(|provider| {
+            let pool = provider
+                .resolve::<sqlx::PgPool>()
+                .expect("pg pool not registered");
+            crate::data::postgres::migration::PostgresMigrator::new(pool.as_ref().clone())
+        });
+
+        self
+    }
+}
+
 impl AppBuilder {
     pub fn use_entity<E>(&mut self) -> &mut Self
     where

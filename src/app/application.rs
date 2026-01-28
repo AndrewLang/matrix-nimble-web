@@ -164,6 +164,24 @@ impl Application {
     }
 }
 
+#[cfg(feature = "postgres")]
+impl Application {
+    pub async fn migrate_entity<E>(&self) -> Result<(), crate::data::provider::DataError>
+    where
+        E: crate::data::postgres::PostgresEntity,
+    {
+        use crate::data::postgres::PostgresMigrator;
+
+        let migrator = self.services.resolve::<PostgresMigrator>().ok_or_else(|| {
+            crate::data::provider::DataError::Provider(
+                "PostgresMigrator not registered. Did you call builder.use_postgres()?".to_string(),
+            )
+        })?;
+
+        migrator.migrate::<E>().await
+    }
+}
+
 #[derive(Debug)]
 pub enum AppError {
     InvalidAddress(String),

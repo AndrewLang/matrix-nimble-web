@@ -56,6 +56,17 @@ impl ServiceContainer {
         self.register(ServiceLifetime::Transient, factory);
     }
 
+    pub fn register_instance<T>(&mut self, instance: T)
+    where
+        T: Clone + Send + Sync + 'static,
+    {
+        self.register_singleton(move |_| instance.clone());
+    }
+
+    pub fn has_registration<T: 'static>(&self) -> bool {
+        self.registrations.contains_key(&TypeId::of::<T>())
+    }
+
     pub fn build(self) -> ServiceProvider {
         ServiceProvider::from_registrations(self.registrations)
     }

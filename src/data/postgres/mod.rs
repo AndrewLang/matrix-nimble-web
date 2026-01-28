@@ -8,6 +8,7 @@ use crate::data::query::{
     Filter, FilterOperator, GroupBy, Join, JoinOn, Query, SortDirection, Value,
 };
 use crate::entity::entity::Entity;
+pub mod migration;
 
 pub trait PostgresEntity:
     Entity + for<'r> sqlx::FromRow<'r, PgRow> + Send + Sync + Unpin + 'static
@@ -18,6 +19,7 @@ pub trait PostgresEntity:
     fn insert_values(&self) -> Vec<Value>;
     fn update_columns() -> &'static [&'static str];
     fn update_values(&self) -> Vec<Value>;
+    fn table_columns() -> Vec<crate::data::schema::ColumnDef>;
 }
 
 pub struct PostgresProvider<E: Entity> {

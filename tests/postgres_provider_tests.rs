@@ -6,6 +6,7 @@ use nimble_web::data::provider::{DataError, DataProvider};
 use nimble_web::data::query::{
     Filter, FilterOperator, GroupBy, Join, JoinOn, Query, Sort, SortDirection, Value,
 };
+use nimble_web::data::schema::ColumnDef;
 use nimble_web::entity::entity::Entity;
 use sqlx::postgres::{PgPoolOptions, PgRow};
 use sqlx::FromRow;
@@ -78,6 +79,10 @@ impl PostgresEntity for PgItem {
     fn update_values(&self) -> Vec<Value> {
         vec![Value::String(self.name.clone())]
     }
+
+    fn table_columns() -> Vec<ColumnDef> {
+        vec![]
+    }
 }
 
 impl<'r> FromRow<'r, PgRow> for PgItem {
@@ -126,6 +131,10 @@ impl PostgresEntity for BadPgItem {
 
     fn update_values(&self) -> Vec<Value> {
         vec![Value::String("only-name".to_string())]
+    }
+
+    fn table_columns() -> Vec<ColumnDef> {
+        vec![]
     }
 }
 
@@ -187,6 +196,10 @@ impl PostgresEntity for PgVariety {
 
     fn update_values(&self) -> Vec<Value> {
         vec![Value::Bool(false)]
+    }
+
+    fn table_columns() -> Vec<ColumnDef> {
+        vec![]
     }
 }
 

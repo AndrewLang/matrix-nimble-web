@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "cargo build",
+    "build:cli": "cargo build --release --features cli --bin nimble",
     "test": "cargo test",
     "test:coverage": "cargo llvm-cov --all-features --summary-only",
     "start:light": "cargo run --example light_server",
