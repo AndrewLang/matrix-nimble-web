@@ -35,6 +35,12 @@ use crate::Configuration;
 #[cfg(feature = "redis")]
 use crate::redis::RedisModule;
 
+#[cfg(feature = "postgres")]
+use {
+    crate::data::postgres::migration::MigrationBuilder, crate::data::postgres::PostgresModule,
+    sqlx::postgres::PgPoolOptions,
+};
+
 pub struct AppBuilder {
     pipeline: Pipeline,
     endpoint_registry: EndpointRegistry,
@@ -267,18 +273,20 @@ impl AppBuilder {
 #[cfg(feature = "postgres")]
 impl AppBuilder {
     pub fn use_postgres(&mut self) -> &mut Self {
+        log::info!("Registering pool options");
         self.services.register_singleton(|provider| {
             let config = provider
                 .resolve::<Configuration>()
                 .expect("configuration not registered");
             let pg_config = config.postgres_config();
 
-            sqlx::postgres::PgPoolOptions::new()
+            PgPoolOptions::new()
                 .max_connections(pg_config.pool_size)
                 .connect_lazy(&pg_config.url)
                 .expect("invalid postgres configuration")
         });
 
+        log::info!("Registering postgres config");
         self.services.register_singleton(|provider| {
             let config = provider
                 .resolve::<Configuration>()
@@ -286,11 +294,12 @@ impl AppBuilder {
             config.postgres_config()
         });
 
+        log::info!("Registering migrator");
         self.services.register_singleton(|provider| {
             let pool = provider
                 .resolve::<sqlx::PgPool>()
                 .expect("pg pool not registered");
-            crate::data::postgres::migration::PostgresMigrator::new(pool.as_ref().clone())
+            PostgresMigrator::new(pool.as_ref().clone())
         });
 
         self
