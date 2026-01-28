@@ -1,6 +1,8 @@
 use crate::config::Configuration;
+use serde::Deserialize;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PostgresConfig {
     pub url: String,
     pub pool_size: u32,

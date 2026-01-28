@@ -19,6 +19,12 @@ use crate::routing::default_router::DefaultRouter;
 use crate::runtime::hyper_runtime::HyperRuntime;
 use crate::runtime::runtime::Runtime;
 
+#[cfg(feature = "postgres")]
+use {
+    crate::data::postgres::migration::PostgresMigrator, crate::data::postgres::PostgresEntity,
+    crate::data::provider::DataError,
+};
+
 pub struct Application {
     pipeline: Pipeline,
     services: ServiceProvider,
@@ -166,14 +172,12 @@ impl Application {
 
 #[cfg(feature = "postgres")]
 impl Application {
-    pub async fn migrate_entity<E>(&self) -> Result<(), crate::data::provider::DataError>
+    pub async fn migrate_entity<E>(&self) -> Result<(), DataError>
     where
-        E: crate::data::postgres::PostgresEntity,
+        E: PostgresEntity,
     {
-        use crate::data::postgres::migration::PostgresMigrator;
-
         let migrator = self.services.resolve::<PostgresMigrator>().ok_or_else(|| {
-            crate::data::provider::DataError::Provider(
+            DataError::Provider(
                 "PostgresMigrator not registered. Did you call builder.use_postgres()?".to_string(),
             )
         })?;

@@ -11,7 +11,6 @@ use crate::background::hosted_service::{HostedService, HostedServiceHost};
 use crate::background::in_memory_queue::InMemoryJobQueue;
 use crate::background::job_queue::JobQueue;
 use crate::config::ConfigBuilder;
-use crate::config::Configuration;
 use crate::controller::controller::Controller;
 use crate::data::memory_repository::MemoryRepository;
 use crate::data::provider::DataProvider;
@@ -31,6 +30,7 @@ use crate::routing::router::Router;
 use crate::security::auth::AuthenticationMiddleware;
 use crate::security::policy::AuthorizationMiddleware;
 use crate::validation::ValidationMiddleware;
+use crate::Configuration;
 
 #[cfg(feature = "redis")]
 use crate::redis::RedisModule;
@@ -185,6 +185,9 @@ impl AppBuilder {
         services.register_singleton::<Arc<EntityRegistry>, _>(move |_| entity_registry.clone());
 
         let config = config_builder.build();
+        let config_clone = config.clone();
+        services.register_singleton::<Configuration, _>(move |_| config_clone.clone());
+
         #[cfg(feature = "redis")]
         RedisModule::register(&mut services, &config);
 
