@@ -1,5 +1,6 @@
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use std::hash::Hash;
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -11,6 +12,8 @@ use crate::background::in_memory_queue::InMemoryJobQueue;
 use crate::background::job_queue::JobQueue;
 use crate::config::ConfigBuilder;
 use crate::controller::controller::Controller;
+use crate::data::memory_repository::MemoryRepository;
+use crate::data::provider::DataProvider;
 use crate::di::ServiceContainer;
 use crate::endpoint::http_handler::HttpHandler;
 use crate::endpoint::registry::EndpointRegistry;
@@ -324,6 +327,29 @@ impl AppBuilder {
             }
         }
 
+        self
+    }
+
+    pub fn use_memory_repository<E>(&mut self) -> &mut Self
+    where
+        E: Entity + Clone + Serialize + DeserializeOwned + Send + Sync + 'static,
+        E::Id: FromStr + Hash + Eq + Clone + Send + Sync + 'static,
+    {
+        let repo = MemoryRepository::<E>::new();
+        self.services
+            .register_singleton::<Arc<dyn DataProvider<E>>, _>(move |_| Arc::new(repo.clone()));
+        self
+    }
+
+    pub fn use_memory_repository_with_data<E>(&mut self, data: Vec<E>) -> &mut Self
+    where
+        E: Entity + Clone + Serialize + DeserializeOwned + Send + Sync + 'static,
+        E::Id: FromStr + Hash + Eq + Clone + Send + Sync + 'static,
+    {
+        let repo = MemoryRepository::<E>::new();
+        repo.seed(data);
+        self.services
+            .register_singleton::<Arc<dyn DataProvider<E>>, _>(move |_| Arc::new(repo.clone()));
         self
     }
 }

@@ -28,6 +28,13 @@ where
         }
     }
 
+    pub fn seed(&self, entities: Vec<E>) {
+        let mut store = self.store.lock().expect("store lock");
+        for entity in entities {
+            store.insert(entity.id().clone(), entity);
+        }
+    }
+
     fn snapshot(&self) -> Vec<E> {
         self.store
             .lock()

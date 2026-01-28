@@ -35,21 +35,17 @@ struct CreatePhoto {
     name: String,
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 struct Photo {
     id: i64,
     name: String,
 }
 
-#[derive(Serialize, Deserialize)]
-struct PhotoEntity;
-
-impl Entity for PhotoEntity {
+impl Entity for Photo {
     type Id = i64;
 
     fn id(&self) -> &Self::Id {
-        static ID: i64 = 0;
-        &ID
+        &self.id
     }
 
     fn name() -> &'static str {
@@ -57,7 +53,7 @@ impl Entity for PhotoEntity {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct User {
     pub id: String,
     pub email: String,
@@ -204,8 +200,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .use_validation()
         .use_in_memory_job_queue()
         .use_controller::<ApiController>()
-        .use_entity::<PhotoEntity>()
-        .use_entity_with_operations::<User>(&[EntityOperation::Get])
+        .use_memory_repository_with_data::<Photo>(vec![
+            Photo {
+                id: 1,
+                name: "Sunset".to_string(),
+            },
+            Photo {
+                id: 2,
+                name: "Mountain".to_string(),
+            },
+        ])
+        .use_memory_repository_with_data::<User>(vec![User {
+            id: "1".to_string(),
+            email: "admin@example.com".to_string(),
+            password_hash: "hashed".to_string(),
+        }])
+        .use_entity::<Photo>()
+        .use_entity_with_operations::<User>(&[EntityOperation::Get, EntityOperation::List])
         .route_get("/api/health", HealthHandler);
 
     let app = builder.build();
