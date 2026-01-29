@@ -1,6 +1,6 @@
 use nimble_web::data::paging::{Page, PageRequest};
 use nimble_web::data::provider::{DataProvider, DataResult};
-use nimble_web::data::query::Query;
+use nimble_web::data::query::{Query, Value};
 use nimble_web::entity::entity::Entity;
 
 #[derive(Debug, Clone)]
@@ -50,6 +50,10 @@ impl DataProvider<Thing> for FakeProvider {
             .map(|p| (p.page, p.page_size))
             .unwrap_or((1, 10));
         Ok(Page::new(Vec::new(), 0, page, page_size))
+    }
+
+    async fn get_by(&self, _column: &str, _value: Value) -> DataResult<Option<Thing>> {
+        Ok(None)
     }
 }
 

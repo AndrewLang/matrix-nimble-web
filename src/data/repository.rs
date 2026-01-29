@@ -1,7 +1,9 @@
 use async_trait::async_trait;
 
+use crate::data::paging::Page;
 use crate::data::provider::{DataProvider, DataResult};
 use crate::data::query::Query;
+use crate::data::query::Value;
 use crate::entity::entity::Entity;
 
 pub struct Repository<E: Entity> {
@@ -33,27 +35,32 @@ impl<E: Entity> Repository<E> {
 #[async_trait]
 impl<E: Entity> DataProvider<E> for Repository<E> {
     async fn create(&self, entity: E) -> DataResult<E> {
-        log::debug!("repo.create {}", E::name());
+        log::debug!("Repository create {}", E::name());
         self.provider.create(entity).await
     }
 
     async fn get(&self, id: &E::Id) -> DataResult<Option<E>> {
-        log::debug!("repo.get {}", E::name());
+        log::debug!("Repository get {}", E::name());
         self.provider.get(id).await
     }
 
     async fn update(&self, entity: E) -> DataResult<E> {
-        log::debug!("repo.update {}", E::name());
+        log::debug!("Repository update {}", E::name());
         self.provider.update(entity).await
     }
 
     async fn delete(&self, id: &E::Id) -> DataResult<bool> {
-        log::debug!("repo.delete {}", E::name());
+        log::debug!("Repository delete {}", E::name());
         self.provider.delete(id).await
     }
 
-    async fn query(&self, query: Query<E>) -> DataResult<crate::data::paging::Page<E>> {
-        log::debug!("repo.query {} ({})", E::name(), E::plural_name());
+    async fn query(&self, query: Query<E>) -> DataResult<Page<E>> {
+        log::debug!("Repository query {} ({})", E::name(), E::plural_name());
         self.provider.query(query).await
+    }
+
+    async fn get_by(&self, column: &str, value: Value) -> DataResult<Option<E>> {
+        log::debug!("Repository get_by {} column={}", E::name(), column);
+        self.provider.get_by(column, value).await
     }
 }

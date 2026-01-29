@@ -427,6 +427,22 @@ where
 
         Ok(Page::new(items, total, page, page_size))
     }
+
+    async fn get_by(&self, column: &str, value: Value) -> DataResult<Option<E>> {
+        let mut builder = QueryBuilder::<Postgres>::new("SELECT t.* FROM ");
+        builder.push(self.base_table());
+        builder.push(" t WHERE t.");
+        builder.push(column);
+        builder.push(" = ");
+        Self::bind_value(&mut builder, value);
+
+        let row = builder
+            .build_query_as::<E>()
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(Self::map_sqlx_error)?;
+        Ok(row)
+    }
 }
 
 impl<E: Entity> PostgresProvider<E> {

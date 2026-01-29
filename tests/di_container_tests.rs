@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use nimble_web::data::paging::Page;
 use nimble_web::data::provider::{DataProvider, DataResult};
-use nimble_web::data::query::Query;
+use nimble_web::data::query::{Query, Value};
 use nimble_web::data::repository::Repository;
 use nimble_web::di::DataProviderRegistry;
 use nimble_web::di::ServiceContainer;
@@ -126,6 +126,11 @@ where
             .map(|p| (p.page, p.page_size))
             .unwrap_or((1, values.len() as u32));
         Ok(Page::new(values, total, page, page_size))
+    }
+
+    async fn get_by(&self, _column: &str, _value: Value) -> DataResult<Option<E>> {
+        self.calls.lock().expect("calls lock").push("get_by");
+        Ok(None)
     }
 }
 

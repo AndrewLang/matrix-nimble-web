@@ -84,4 +84,12 @@ impl<E: Entity> DataProvider<E> for SharedProvider<E> {
     ) -> crate::data::provider::DataResult<crate::data::paging::Page<E>> {
         self.inner.query(query).await
     }
+
+    async fn get_by(
+        &self,
+        column: &str,
+        value: crate::data::query::Value,
+    ) -> crate::data::provider::DataResult<Option<E>> {
+        self.inner.get_by(column, value).await
+    }
 }

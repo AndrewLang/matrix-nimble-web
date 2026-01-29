@@ -26,6 +26,9 @@ pub trait DataProvider<E: Entity>: Send + Sync {
 
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>>;
 
+    async fn get_by(&self, column: &str, value: crate::data::query::Value)
+        -> DataResult<Option<E>>;
+
     async fn list(&self, page: PageRequest) -> DataResult<Page<E>> {
         let mut query = Query::<E>::new();
         query.paging = Some(page);

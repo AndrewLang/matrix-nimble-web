@@ -97,6 +97,10 @@ where
             .unwrap_or((1, values.len() as u32));
         Ok(Page::new(values, total, page, page_size))
     }
+
+    async fn get_by(&self, _column: &str, _value: Value) -> DataResult<Option<E>> {
+        Ok(None)
+    }
 }
 
 #[tokio::test]

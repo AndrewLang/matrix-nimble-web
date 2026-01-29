@@ -146,7 +146,7 @@ impl HttpContext {
                 })
             }
             crate::http::request_body::RequestBody::Empty => {
-                Err(ValidationError::new("❌ Empty request body"))
+                Err(ValidationError::new("empty request body"))
             }
         }
     }

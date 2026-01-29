@@ -71,7 +71,8 @@ where
     async fn create(&self, entity: E) -> DataResult<E> {
         let collection = self.collection();
         let doc = bson::to_document(&entity).map_err(|err| DataError::Provider(err.to_string()))?;
-        collection.insert_one(doc)
+        collection
+            .insert_one(doc)
             .await
             .map_err(Self::map_mongo_error)?;
 
@@ -84,7 +85,8 @@ where
     async fn get(&self, id: &E::Id) -> DataResult<Option<E>> {
         let collection = self.collection();
         let filter = Self::id_filter(id);
-        let doc = collection.find_one(filter)
+        let doc = collection
+            .find_one(filter)
             .await
             .map_err(Self::map_mongo_error)?;
         match doc {
@@ -101,7 +103,8 @@ where
         let collection = self.collection();
         let filter = Self::id_filter(entity.id());
         let doc = bson::to_document(&entity).map_err(|err| DataError::Provider(err.to_string()))?;
-        let result = collection.replace_one(filter, doc)
+        let result = collection
+            .replace_one(filter, doc)
             .await
             .map_err(Self::map_mongo_error)?;
         if result.matched_count == 0 {
@@ -113,7 +116,8 @@ where
     async fn delete(&self, id: &E::Id) -> DataResult<bool> {
         let collection = self.collection();
         let filter = Self::id_filter(id);
-        let result = collection.delete_one(filter)
+        let result = collection
+            .delete_one(filter)
             .await
             .map_err(Self::map_mongo_error)?;
         Ok(result.deleted_count > 0)
@@ -149,6 +153,25 @@ where
             .unwrap_or((1, items.len() as u32));
 
         Ok(Page::new(items, total, page, page_size))
+    }
+
+    async fn get_by(&self, column: &str, value: Value) -> DataResult<Option<E>> {
+        let collection = self.collection();
+        let mut filter = Document::new();
+        filter.insert(column, Self::to_bson(&value)?);
+
+        let doc = collection
+            .find_one(filter)
+            .await
+            .map_err(Self::map_mongo_error)?;
+        match doc {
+            Some(doc) => {
+                let entity = bson::from_document::<E>(doc)
+                    .map_err(|err| DataError::Provider(err.to_string()))?;
+                Ok(Some(entity))
+            }
+            None => Ok(None),
+        }
     }
 }
 
@@ -571,6 +594,9 @@ where
                 subtype: bson::spec::BinarySubtype::Generic,
                 bytes: value.clone(),
             })),
+            Value::DateTime(value) => Ok(Bson::DateTime(bson::DateTime::from_millis(
+                value.timestamp_millis(),
+            ))),
             Value::List(values) => Ok(Bson::Array(
                 values.iter().map(Self::to_bson).collect::<Result<_, _>>()?,
             )),

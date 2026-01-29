@@ -100,4 +100,13 @@ where
 
         Ok(Page::new(page_items, total, page, page_size))
     }
+
+    async fn get_by(
+        &self,
+        _column: &str,
+        _value: crate::data::query::Value,
+    ) -> DataResult<Option<E>> {
+        // TODO: Implement filtering for MemoryRepository
+        Ok(None)
+    }
 }
