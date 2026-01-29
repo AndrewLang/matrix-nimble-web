@@ -9,7 +9,6 @@ use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::endpoint::metadata::EndpointMetadata;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
-use nimble_web::identity::claims::Claims;
 use nimble_web::identity::context::IdentityContext;
 use nimble_web::middleware::endpoint_exec::EndpointExecutionMiddleware;
 use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};

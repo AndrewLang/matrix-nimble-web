@@ -1,3 +1,5 @@
+use serde::de::DeserializeOwned;
+use std::any::type_name;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -7,6 +9,7 @@ use crate::di::ServiceProvider;
 use crate::endpoint::endpoint::Endpoint;
 use crate::http::request::HttpRequest;
 use crate::http::response::HttpResponse;
+use crate::pipeline::pipeline::PipelineError;
 use crate::result::into_response::ResponseValue;
 use crate::routing::route_data::RouteData;
 use crate::validation::ValidationError;
@@ -149,5 +152,31 @@ impl HttpContext {
                 Err(ValidationError::new("empty request body"))
             }
         }
+    }
+}
+
+impl HttpContext {
+    pub fn json<T: DeserializeOwned>(&mut self) -> Result<T, PipelineError> {
+        self.read_json()
+            .map_err(|e| PipelineError::message(&e.message()))
+    }
+
+    pub fn service<T>(&self) -> Result<Arc<T>, PipelineError>
+    where
+        T: Send + Sync + 'static,
+    {
+        self.services().resolve::<T>().ok_or_else(|| {
+            PipelineError::message(&format!(
+                "Service `{}` is not registered",
+                Self::short_type_name::<T>()
+            ))
+        })
+    }
+
+    fn short_type_name<T>() -> &'static str {
+        type_name::<T>()
+            .rsplit("::")
+            .next()
+            .unwrap_or(type_name::<T>())
     }
 }
