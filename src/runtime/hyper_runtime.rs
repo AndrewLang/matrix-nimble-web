@@ -31,6 +31,8 @@ impl HyperRuntime {
     async fn handle_request(app: Arc<Application>, req: Request<Incoming>) -> Response<BoxedBody> {
         let method = req.method().as_str().to_string();
         let path = req.uri().path().to_string();
+
+        log::debug!("--------------------------------");
         log::debug!("Processing request {} {}", method, path);
 
         let mut request = HttpRequest::new(&method, &path);
@@ -51,6 +53,8 @@ impl HyperRuntime {
 
         let response = app.handle_http_request(request);
         log::debug!("Response {} {} -> {}", method, path, response.status());
+        log::debug!("--------------------------------\n");
+
         Self::to_hyper_response(response)
     }
 

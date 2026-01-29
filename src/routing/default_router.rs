@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::http::request::HttpRequest;
 use crate::routing::route::Route;
 use crate::routing::route_data::RouteData;
@@ -18,8 +20,6 @@ impl DefaultRouter {
     }
 
     pub fn log_routes(&self) {
-        use std::collections::HashMap;
-
         fn normalize_path(path: &str) -> String {
             let path = path.split('?').next().unwrap_or(path).trim_end_matches('/');
             let trimmed = path.trim_start_matches('/');
@@ -48,6 +48,7 @@ impl DefaultRouter {
             }
         }
 
+        log::info!("");
         log::info!("Registered routes (grouped):");
         let mut groups: HashMap<String, Vec<&Route>> = HashMap::new();
         for route in &self.routes {
@@ -60,20 +61,24 @@ impl DefaultRouter {
             let mut methods: Vec<String> = routes.iter().map(|r| r.method().to_string()).collect();
             methods.sort();
             methods.dedup();
+
             log::info!(
                 "⇒ {} — {} route(s) — methods: {}",
                 key,
                 count,
                 methods.join(", ")
             );
-            for r in routes.iter().take(5) {
-                log::debug!("    ⇢  Example: {:<8} {}", r.method(), r.path());
-            }
-            if count > 5 {
-                log::debug!("    ... ({} more)", count - 5);
+
+            let max_count = 6;
+            for r in routes.iter().take(max_count) {
+                log::info!("    ⇢  Example: {:<8} {}", r.method(), r.path());
             }
 
-            log::debug!("");
+            if count > max_count {
+                log::info!("    ... ({} more)", count - max_count);
+            }
+
+            log::info!("");
         }
     }
 }
