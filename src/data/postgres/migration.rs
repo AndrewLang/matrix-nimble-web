@@ -24,7 +24,7 @@ impl PostgresMigrator {
         .await
         .map_err(|e| DataError::Provider(e.to_string()))?;
 
-        log::info!(
+        log::debug!(
             "Migrate entity {}, table exists: {}",
             E::plural_name(),
             exists

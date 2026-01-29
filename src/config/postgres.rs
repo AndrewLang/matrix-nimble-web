@@ -22,18 +22,17 @@ impl Default for PostgresConfig {
 impl PostgresConfig {
     pub fn from_configuration(config: &Configuration) -> Self {
         let mut pg_config = Self::default();
-        if let Some(url) = config.get("postgres.url") {
+        if let Some(url) = config.get("Postgres.Url") {
             pg_config.url = url.to_string();
         }
-        if let Some(pool) = config
-            .get("postgres.pool_size")
-            .and_then(|v| v.parse().ok())
-        {
+        if let Some(pool) = config.get("Postgres.PoolSize").and_then(|v| v.parse().ok()) {
             pg_config.pool_size = pool;
         }
-        if let Some(schema) = config.get("postgres.schema") {
+        if let Some(schema) = config.get("Postgres.Schema") {
             pg_config.schema = Some(schema.to_string());
         }
+
+        log::debug!("PostgresConfig loaded: {:?}", pg_config);
         pg_config
     }
 }

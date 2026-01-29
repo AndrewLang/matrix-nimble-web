@@ -182,6 +182,7 @@ impl Application {
             )
         })?;
 
+        log::debug!("Starting migration for entity {}", E::name());
         migrator.migrate::<E>().await
     }
 }

@@ -150,6 +150,9 @@ impl AppBuilder {
                 .unwrap_or_else(|| std::path::PathBuf::from("."));
             base.join(path)
         };
+
+        log::debug!("Using config file at {}", path.display());
+
         let builder = std::mem::replace(&mut self.config_builder, ConfigBuilder::new());
         self.config_builder = builder.with_file(&path);
         self
@@ -280,14 +283,14 @@ impl AppBuilder {
             PgPoolOptions::new()
                 .max_connections(pg_config.pool_size)
                 .connect_lazy(&pg_config.url)
-                .expect("invalid postgres configuration")
+                .expect("❌  Invalid postgres configuration")
         });
 
         log::info!("Registering postgres config");
         self.services.register_singleton(|provider| {
             let config = provider
                 .resolve::<Configuration>()
-                .expect("configuration not registered");
+                .expect("❌  Postgres configuration not registered");
             config.postgres_config()
         });
 
@@ -295,7 +298,7 @@ impl AppBuilder {
         self.services.register_singleton(|provider| {
             let pool = provider
                 .resolve::<sqlx::PgPool>()
-                .expect("pg pool not registered");
+                .expect("❌  Postgres pool not registered");
             PostgresMigrator::new(pool.as_ref().clone())
         });
 
