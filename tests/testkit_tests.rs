@@ -85,11 +85,9 @@ fn auth_testing_support() {
     let request = testkit::request::HttpRequestBuilder::get("/secure")
         .build()
         .with_auth("test-user");
-    let mut context = HttpContext::new(
-        request,
-        ServiceContainer::new().build(),
-        ConfigBuilder::new().build(),
-    );
+    let mut container = ServiceContainer::new();
+    testkit::auth::provide_mock_token_service(&mut container);
+    let mut context = HttpContext::new(request, container.build(), ConfigBuilder::new().build());
 
     let mut pipeline = Pipeline::new();
     pipeline.add(AuthenticationMiddleware::new());

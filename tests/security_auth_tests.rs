@@ -9,12 +9,14 @@ use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::endpoint::metadata::EndpointMetadata;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
+use nimble_web::identity::claims::Claims;
 use nimble_web::identity::context::IdentityContext;
 use nimble_web::middleware::endpoint_exec::EndpointExecutionMiddleware;
 use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
 use nimble_web::result::into_response::ResponseValue;
 use nimble_web::security::auth::AuthenticationMiddleware;
 use nimble_web::security::policy::{AuthorizationMiddleware, Policy};
+use nimble_web::testkit::auth::provide_mock_token_service;
 
 #[derive(Clone)]
 struct Trace {
@@ -56,7 +58,9 @@ impl HttpHandler for TestEndpoint {
 
 fn make_context(method: &str, path: &str) -> HttpContext {
     let request = HttpRequest::new(method, path);
-    let services = ServiceContainer::new().build();
+    let mut container = ServiceContainer::new();
+    provide_mock_token_service(&mut container);
+    let services = container.build();
     let config = ConfigBuilder::new().build();
     HttpContext::new(request, services, config)
 }

@@ -1,9 +1,22 @@
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Claims {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sub: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exp: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub iat: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub iss: Option<String>,
+
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     roles: HashSet<String>,
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     permissions: HashSet<String>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     attributes: HashMap<String, String>,
 }
 

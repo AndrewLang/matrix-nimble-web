@@ -21,7 +21,9 @@ http-body-util = "0.1"
 tokio = { version = "1", features = ["full"] }
 log = "0.4"
 env_logger = "0.11"
+anyhow = "1"
 chrono = { version = "0.4", features = ["serde"] }
+jsonwebtoken = "9"
 
 [dependencies.redis]
 version = "1.0"
@@ -50,10 +52,6 @@ version = "4.5"
 features = ["derive"]
 optional = true
 
-[dependencies.anyhow]
-version = "1"
-optional = true
-
 [dependencies.dialoguer]
 version = "0.11"
 optional = true
@@ -66,7 +64,7 @@ optional = true
 redis = ["dep:redis", "dep:deadpool-redis", "dep:deadpool"]
 mongodb = ["dep:mongodb"]
 postgres = ["dep:sqlx"]
-cli = ["dep:clap", "dep:anyhow", "dep:dialoguer", "dep:fs_extra"]
+cli = ["dep:clap", "dep:dialoguer", "dep:fs_extra"]
 
 [dev-dependencies]
 reqwest = "0.13.1"

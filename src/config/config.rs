@@ -20,7 +20,9 @@ impl Configuration {
     }
 
     pub fn get(&self, key: &str) -> Option<&str> {
-        self.values.get(key).map(|value| value.as_str())
+        self.values
+            .get(&key.to_lowercase())
+            .map(|value| value.as_str())
     }
 
     pub fn get_u64(&self, key: &str) -> Option<u64> {

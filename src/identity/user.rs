@@ -22,6 +22,10 @@ impl UserIdentity {
     pub fn id(&self) -> &str {
         &self.user_id
     }
+
+    pub fn claims(&self) -> &Claims {
+        &self.claims
+    }
 }
 
 impl Debug for UserIdentity {

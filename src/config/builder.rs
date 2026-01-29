@@ -52,7 +52,7 @@ impl ConfigBuilder {
         for source in self.sources {
             let next = source.load();
             for (key, value) in next {
-                values.insert(key, value);
+                values.insert(key.to_lowercase(), value);
             }
         }
         Configuration::new(values)
