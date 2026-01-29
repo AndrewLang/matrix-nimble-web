@@ -24,7 +24,7 @@ impl PostgresMigrator {
         .await
         .map_err(|e| DataError::Provider(e.to_string()))?;
 
-        log::debug!(
+        log::trace!(
             "Migrate entity {}, table exists: {}",
             E::plural_name(),
             exists
@@ -41,7 +41,7 @@ impl PostgresMigrator {
         let columns = E::table_columns();
         let sql = MigrationBuilder::build_create_table(table_name, &columns);
 
-        log::debug!("Create table SQL: {}", sql);
+        log::trace!("Create table SQL: {}", sql);
 
         self.pool
             .execute(sql.as_str())
@@ -62,7 +62,7 @@ impl PostgresMigrator {
         .await
         .map_err(|e| DataError::Provider(e.to_string()))?;
 
-        log::debug!("Update table columns: {:#?}", rows);
+        log::trace!("Update table columns: {:#?}", rows);
 
         let existing_columns: Vec<String> = rows
             .iter()
@@ -72,6 +72,7 @@ impl PostgresMigrator {
         for col in defined_columns {
             if !existing_columns.contains(&col.name.to_string()) {
                 let sql = MigrationBuilder::build_add_column(table_name, &col);
+                log::trace!("Add column SQL: {}", sql);
                 self.pool
                     .execute(sql.as_str())
                     .await

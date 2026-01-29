@@ -18,9 +18,62 @@ impl DefaultRouter {
     }
 
     pub fn log_routes(&self) {
-        log::info!("Registered routes:");
+        use std::collections::HashMap;
+
+        fn normalize_path(path: &str) -> String {
+            let path = path.split('?').next().unwrap_or(path).trim_end_matches('/');
+            let trimmed = path.trim_start_matches('/');
+            if trimmed.is_empty() {
+                return "/".to_string();
+            }
+
+            let parts: Vec<&str> = trimmed.split('/').collect();
+            let mapped: Vec<String> = parts
+                .into_iter()
+                .map(|s| {
+                    if s.parse::<i64>().is_ok() {
+                        "{id}".to_string()
+                    } else if s.len() == 36 && s.matches('-').count() == 4 {
+                        "{id}".to_string()
+                    } else {
+                        s.to_string()
+                    }
+                })
+                .collect();
+
+            if mapped.len() >= 2 {
+                format!("{}/{}", mapped[0], mapped[1])
+            } else {
+                mapped.join("/")
+            }
+        }
+
+        log::info!("Registered routes (grouped):");
+        let mut groups: HashMap<String, Vec<&Route>> = HashMap::new();
         for route in &self.routes {
-            log::info!("🔀 Route: {} {}", route.method(), route.path());
+            let key = normalize_path(route.path());
+            groups.entry(key).or_default().push(route);
+        }
+
+        for (key, routes) in groups {
+            let count = routes.len();
+            let mut methods: Vec<String> = routes.iter().map(|r| r.method().to_string()).collect();
+            methods.sort();
+            methods.dedup();
+            log::info!(
+                "⇒ {} — {} route(s) — methods: {}",
+                key,
+                count,
+                methods.join(", ")
+            );
+            for r in routes.iter().take(5) {
+                log::debug!("    ⇢  Example: {:<8} {}", r.method(), r.path());
+            }
+            if count > 5 {
+                log::debug!("    ... ({} more)", count - 5);
+            }
+
+            log::debug!("");
         }
     }
 }
