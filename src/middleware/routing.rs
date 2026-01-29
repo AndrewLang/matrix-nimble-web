@@ -37,11 +37,28 @@ impl RoutingMiddleware {
 impl Middleware for RoutingMiddleware {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         if let Some(route_data) = self.router.match_request(context.request()) {
-            log::debug!("Route matched: {}", route_data.route());
             if let Some(registry) = self.endpoint_registry.as_ref() {
                 if let Some(endpoint) = registry.find_endpoint(route_data.route()) {
                     context.set_endpoint(endpoint);
+                } else {
+                    log::debug!(
+                        "❌ No endpoint found for route: {}",
+                        route_data.route().path()
+                    );
+
+                    self.endpoint_registry.as_ref().map(|registry| {
+                        log::debug!(
+                            "Available endpoints: {:?}",
+                            registry
+                                .endpoints()
+                                .iter()
+                                .map(|ep| ep.metadata().route_pattern())
+                                .collect::<Vec<&str>>()
+                        )
+                    });
                 }
+            } else {
+                log::debug!("❌ No endpoint registry configured in RoutingMiddleware");
             }
             context.set_route(route_data);
         }

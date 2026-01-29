@@ -17,6 +17,12 @@ impl Middleware for EndpointExecutionMiddleware {
         log::debug!("EndpointExecutionMiddleware: {}", context.request().path());
         if let Some(endpoint) = context.endpoint().cloned() {
             endpoint.invoke(context).await?;
+        } else {
+            log::debug!(
+                "❌ No endpoint found for request {} {}",
+                context.request().method(),
+                context.request().path()
+            );
         }
 
         next.run(context).await

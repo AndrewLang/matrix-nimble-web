@@ -14,7 +14,7 @@ use crate::config::ConfigBuilder;
 use crate::controller::controller::Controller;
 use crate::data::memory_repository::MemoryRepository;
 use crate::data::provider::DataProvider;
-use crate::di::ServiceContainer;
+use crate::di::{ServiceContainer, ServiceProvider};
 use crate::endpoint::http_handler::HttpHandler;
 use crate::endpoint::registry::EndpointRegistry;
 use crate::entity::entity::Entity;
@@ -67,6 +67,23 @@ impl AppBuilder {
 
     pub fn routes(&mut self) -> &mut EndpointRegistry {
         &mut self.endpoint_registry
+    }
+
+    pub fn register_singleton<T, F>(&mut self, factory: F) -> &mut Self
+    where
+        T: Send + Sync + 'static,
+        F: Fn(&ServiceProvider) -> T + Send + Sync + 'static,
+    {
+        self.services.register_singleton(factory);
+        self
+    }
+
+    pub fn register_instance<T>(&mut self, instance: T) -> &mut Self
+    where
+        T: Clone + Send + Sync + 'static,
+    {
+        self.services.register_instance(instance);
+        self
     }
 
     pub fn use_middleware<M: Middleware + 'static>(&mut self, middleware: M) -> &mut Self {
@@ -208,11 +225,14 @@ impl AppBuilder {
         let address = address.unwrap_or_else(|| "0.0.0.0:8080".to_string());
         let pipeline = if has_routes {
             let mut middlewares: Vec<Box<dyn DynMiddleware>> = Vec::new();
+
             middlewares.push(Box::new(RoutingMiddleware::with_registry(
                 router.clone(),
                 Arc::clone(&endpoint_registry),
             )));
+
             middlewares.extend(pipeline.into_middleware());
+
             middlewares.push(Box::new(EndpointExecutionMiddleware::new()));
 
             Pipeline::from_middleware(middlewares)
@@ -336,7 +356,7 @@ impl AppBuilder {
     {
         let hooks = Arc::new(hooks);
         let plural = E::plural_name().to_lowercase();
-        let base_path = format!("api/{}", plural);
+        let base_path = format!("/api/{}", plural);
 
         for op in operations {
             match op {

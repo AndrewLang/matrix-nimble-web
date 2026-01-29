@@ -116,7 +116,12 @@ impl Application {
     }
 
     pub(crate) fn handle_request_context(&self, context: &mut HttpContext) {
-        let _ = self.pipeline.run(context);
+        if let Err(e) = self.pipeline.run(context) {
+            log::error!("❌ Pipeline error: {:?}", e);
+            if context.response().status() == 404 {
+                context.response_mut().set_status(500);
+            }
+        }
     }
 
     pub fn handle_http_request(&self, request: HttpRequest) -> HttpResponse {

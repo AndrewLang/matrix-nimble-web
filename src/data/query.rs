@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use std::marker::PhantomData;
 
 use crate::data::paging::PageRequest;
@@ -31,6 +32,7 @@ pub enum Value {
     Float(f64),
     String(String),
     Bytes(Vec<u8>),
+    DateTime(DateTime<Utc>),
     List(Vec<Value>),
 }
 

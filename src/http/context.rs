@@ -119,7 +119,10 @@ impl HttpContext {
             crate::http::request_body::RequestBody::Bytes(bytes) => {
                 let text = std::str::from_utf8(bytes)
                     .map_err(|err| ValidationError::new(&err.to_string()))?;
-                serde_json::from_str(text).map_err(|err| ValidationError::new(&err.to_string()))
+                serde_json::from_str(text).map_err(|err| {
+                    log::error!("❌ JSON deserialization failed: {}. Body: {}", err, text);
+                    ValidationError::new(&err.to_string())
+                })
             }
             crate::http::request_body::RequestBody::Stream(stream) => {
                 let mut collected = Vec::new();
@@ -137,10 +140,13 @@ impl HttpContext {
                 }
                 let text = std::str::from_utf8(&collected)
                     .map_err(|err| ValidationError::new(&err.to_string()))?;
-                serde_json::from_str(text).map_err(|err| ValidationError::new(&err.to_string()))
+                serde_json::from_str(text).map_err(|err| {
+                    log::error!("❌ JSON deserialization failed: {}. Body: {}", err, text);
+                    ValidationError::new(&err.to_string())
+                })
             }
             crate::http::request_body::RequestBody::Empty => {
-                Err(ValidationError::new("empty request body"))
+                Err(ValidationError::new("❌ Empty request body"))
             }
         }
     }

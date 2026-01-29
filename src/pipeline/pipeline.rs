@@ -37,8 +37,8 @@ impl Pipeline {
     }
 
     pub async fn run_async(&self, context: &mut HttpContext) -> Result<(), PipelineError> {
-        let next = Next::new(self, 0);
-        next.run(context).await
+        let first = Next::new(self, 0);
+        first.run(context).await
     }
 
     pub(crate) fn middleware(&self) -> &[Box<dyn DynMiddleware>] {

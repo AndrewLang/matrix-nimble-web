@@ -134,6 +134,9 @@ impl<E: Entity> PostgresProvider<E> {
             Value::Bytes(value) => {
                 builder.push_bind(value);
             }
+            Value::DateTime(value) => {
+                builder.push_bind(value);
+            }
             Value::List(_) => {
                 builder.push("NULL");
             }
@@ -339,8 +342,15 @@ where
         let row = builder
             .build_query_as::<E>()
             .fetch_optional(&self.pool)
-            .await
-            .map_err(Self::map_sqlx_error)?;
+            .await;
+
+        match &row {
+            Ok(Some(_)) => log::debug!("PostgresProvider::get: found row"),
+            Ok(None) => log::debug!("PostgresProvider::get: row not found"),
+            Err(e) => log::error!("PostgresProvider::get: error: {}", e),
+        }
+
+        let row = row.map_err(Self::map_sqlx_error)?;
         Ok(row)
     }
 
