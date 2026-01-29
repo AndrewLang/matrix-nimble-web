@@ -5,7 +5,7 @@
   "scripts": {
     "build": "cargo build",
     "build:cli": "cargo build --release --features cli --bin nimble",
-    "test": "cargo test",
+    "test": "cargo test --all-features",
     "test:coverage": "cargo llvm-cov --all-features --summary-only",
     "start:light": "cargo run --example light_server",
     "start:light:env": "NIMBLE_ADDRESS=127.0.0.1:8080 cargo run --example light_server",

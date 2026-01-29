@@ -36,10 +36,7 @@ use crate::Configuration;
 use crate::redis::RedisModule;
 
 #[cfg(feature = "postgres")]
-use {
-    crate::data::postgres::migration::MigrationBuilder, crate::data::postgres::PostgresModule,
-    sqlx::postgres::PgPoolOptions,
-};
+use {crate::data::postgres::migration::PostgresMigrator, sqlx::postgres::PgPoolOptions};
 
 pub struct AppBuilder {
     pipeline: Pipeline,
