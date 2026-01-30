@@ -44,6 +44,16 @@ impl ResponseValue {
     {
         Self::new(Json(value))
     }
+
+    pub fn empty() -> Self {
+        Self::new(())
+    }
+}
+
+impl IntoResponse for () {
+    fn into_response(self, context: &mut HttpContext) {
+        context.response_mut().set_status(200);
+    }
 }
 
 impl IntoResponse for HttpResponse {

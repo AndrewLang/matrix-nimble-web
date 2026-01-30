@@ -1,4 +1,5 @@
-﻿use std::future::Future;
+﻿use std::fmt::{Display, Result as FmtResult};
+use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
 
@@ -10,6 +11,16 @@ use crate::pipeline::next::Next;
 pub enum PipelineError {
     Message(String),
 }
+
+impl Display for PipelineError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> FmtResult {
+        match self {
+            PipelineError::Message(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl std::error::Error for PipelineError {}
 
 impl PipelineError {
     pub fn message(message: &str) -> Self {
