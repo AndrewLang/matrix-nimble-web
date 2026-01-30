@@ -30,6 +30,7 @@ pub struct PostgresProvider<E: Entity> {
 
 impl<E: Entity> PostgresProvider<E> {
     pub fn new(pool: PgPool) -> Self {
+        log::info!("Creating PostgresProvider for entity: {}", E::name());
         Self {
             pool,
             schema: None,
@@ -435,6 +436,12 @@ where
         builder.push(column);
         builder.push(" = ");
         Self::bind_value(&mut builder, value);
+
+        log::debug!(
+            "PostgresProvider::get_by SQL: {}; {:?}",
+            builder.sql(),
+            &self.pool.options()
+        );
 
         let row = builder
             .build_query_as::<E>()

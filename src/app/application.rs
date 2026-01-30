@@ -14,6 +14,7 @@ use crate::di::ServiceProvider;
 use crate::http::context::HttpContext;
 use crate::http::request::HttpRequest;
 use crate::http::response::HttpResponse;
+use crate::http::response_body::ResponseBody;
 use crate::pipeline::pipeline::Pipeline;
 use crate::routing::default_router::DefaultRouter;
 use crate::runtime::hyper_runtime::HyperRuntime;
@@ -117,9 +118,13 @@ impl Application {
 
     pub(crate) fn handle_request_context(&self, context: &mut HttpContext) {
         if let Err(e) = self.pipeline.run(context) {
-            log::error!("❌ Pipeline error: {:?}", e);
-            if context.response().status() == 404 {
-                context.response_mut().set_status(500);
+            let status = context.response().status();
+            log::error!("❌ Pipeline error: {} {:?}", status, e);
+
+            if status == 404 {
+                let response = context.response_mut();
+                response.set_status(500);
+                response.set_body(ResponseBody::Text(e.to_string()));
             }
         }
     }

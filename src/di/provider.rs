@@ -1,11 +1,18 @@
 use std::any::type_name;
 use std::any::{Any, TypeId};
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::sync::{Arc, Mutex};
 
 use crate::di::lifetime::ServiceLifetime;
 use crate::di::registration::Registration;
 use crate::di::service_scope::ServiceScope;
+
+thread_local! {
+    static RESOLVE_STACK: RefCell<Vec<TypeId>> = RefCell::new(Vec::new());
+    static RESOLVE_NAME_STACK: RefCell<Vec<&'static str>> = RefCell::new(Vec::new());
+}
 
 pub struct ServiceProvider {
     registrations: Arc<HashMap<TypeId, Registration>>,
@@ -42,12 +49,44 @@ impl ServiceProvider {
     where
         T: Send + Sync + 'static,
     {
-        let registration = self.registrations.get(&TypeId::of::<T>()).cloned()?;
+        let type_id = TypeId::of::<T>();
+        let type_name = Self::short_type_name::<T>();
+        log::debug!("Resolving service: {}", type_name);
 
-        match registration.lifetime {
-            ServiceLifetime::Singleton => self.resolve_cached(&registration, &self.singletons),
-            ServiceLifetime::Scoped => self.resolve_cached(&registration, &self.scoped),
-            ServiceLifetime::Transient => self.resolve_transient(&registration),
+        if RESOLVE_STACK.with(|stack| stack.borrow().contains(&type_id)) {
+            let cycle = RESOLVE_NAME_STACK.with(|names| {
+                let mut names = names.borrow().clone();
+                names.push(type_name);
+                names.join(" -> ")
+            });
+            panic!(
+                "Cycle detected while resolving {}. Resolution path: {}",
+                type_name, cycle
+            );
+        }
+
+        RESOLVE_NAME_STACK.with(|names| names.borrow_mut().push(type_name));
+        push_resolving(type_id);
+
+        let result = catch_unwind(AssertUnwindSafe(|| {
+            let registration = self.registrations.get(&type_id).cloned()?;
+
+            match registration.lifetime {
+                ServiceLifetime::Singleton => self.resolve_cached(&registration, &self.singletons),
+                ServiceLifetime::Scoped => self.resolve_cached(&registration, &self.scoped),
+                ServiceLifetime::Transient => self.resolve_transient(&registration),
+            }
+        }));
+
+        pop_resolving();
+        RESOLVE_NAME_STACK.with(|names| {
+            let mut names = names.borrow_mut();
+            names.pop();
+        });
+
+        match result {
+            Ok(value) => value,
+            Err(err) => resume_unwind(err),
         }
     }
 
@@ -83,17 +122,24 @@ impl ServiceProvider {
     {
         let type_id = TypeId::of::<T>();
 
-        if let Some(existing) = cache.lock().expect("cache poisoned").get(&type_id) {
-            return existing.clone().downcast::<T>().ok();
+        if let Some(existing) = {
+            let guard = cache.lock().expect("cache poisoned");
+            guard.get(&type_id).cloned()
+        } {
+            return existing.downcast::<T>().ok();
         }
 
         let created = (registration.factory)(self);
-        let _typed = created.clone().downcast::<T>().ok()?;
 
-        let mut guard = cache.lock().expect("cache poisoned");
-        let entry = guard.entry(type_id).or_insert(created);
+        let stored = {
+            let mut guard = cache.lock().expect("cache poisoned");
+            guard
+                .entry(type_id)
+                .or_insert_with(|| created.clone())
+                .clone()
+        };
 
-        entry.clone().downcast::<T>().ok()
+        stored.downcast::<T>().ok()
     }
 
     fn resolve_transient<T>(&self, registration: &Registration) -> Option<Arc<T>>
@@ -109,4 +155,15 @@ impl ServiceProvider {
             .next()
             .unwrap_or(type_name::<T>())
     }
+}
+
+fn push_resolving(type_id: TypeId) {
+    RESOLVE_STACK.with(|stack| stack.borrow_mut().push(type_id));
+}
+
+fn pop_resolving() {
+    RESOLVE_STACK.with(|stack| {
+        let mut stack = stack.borrow_mut();
+        stack.pop().expect("resolve stack underflow");
+    });
 }

@@ -126,7 +126,7 @@ impl Runtime for HyperRuntime {
         loop {
             tokio::select! {
                 _ = &mut shutdown => {
-                    log::info!("runtime shutdown signal received");
+                    log::info!("Runtime shutdown signal received");
                     break;
                 }
                 accept = listener.accept() => {

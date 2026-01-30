@@ -6,7 +6,10 @@ use crate::data::query::Query;
 use crate::data::query::Value;
 use crate::entity::entity::Entity;
 
-pub struct Repository<E: Entity> {
+pub struct Repository<E>
+where
+    E: Entity,
+{
     provider: Box<dyn DataProvider<E>>,
 }
 

@@ -36,7 +36,10 @@ use crate::Configuration;
 use crate::redis::RedisModule;
 
 #[cfg(feature = "postgres")]
-use {crate::data::postgres::migration::PostgresMigrator, sqlx::postgres::PgPoolOptions};
+use {
+    crate::data::postgres::migration::PostgresMigrator, sqlx::postgres::PgPoolOptions,
+    std::time::Duration,
+};
 
 pub struct AppBuilder {
     pipeline: Pipeline,
@@ -302,6 +305,7 @@ impl AppBuilder {
 
             PgPoolOptions::new()
                 .max_connections(pg_config.pool_size)
+                .acquire_timeout(Duration::from_secs(pg_config.timeout))
                 .connect_lazy(&pg_config.url)
                 .expect("❌  Invalid postgres configuration")
         });

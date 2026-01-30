@@ -6,6 +6,7 @@ use serde::Deserialize;
 pub struct PostgresConfig {
     pub url: String,
     pub pool_size: u32,
+    pub timeout: u64,
     pub schema: Option<String>,
 }
 
@@ -14,6 +15,7 @@ impl Default for PostgresConfig {
         Self {
             url: "postgres://postgres:postgres@localhost:5432/postgres".to_string(),
             pool_size: 10,
+            timeout: 5,
             schema: None,
         }
     }
@@ -27,6 +29,9 @@ impl PostgresConfig {
         }
         if let Some(pool) = config.get("Postgres.PoolSize").and_then(|v| v.parse().ok()) {
             pg_config.pool_size = pool;
+        }
+        if let Some(timeout) = config.get("Postgres.Timeout").and_then(|v| v.parse().ok()) {
+            pg_config.timeout = timeout;
         }
         if let Some(schema) = config.get("Postgres.Schema") {
             pg_config.schema = Some(schema.to_string());
