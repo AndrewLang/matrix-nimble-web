@@ -1,7 +1,9 @@
+use serde::Serialize;
 use std::any::Any;
 
 use crate::http::context::HttpContext;
 use crate::http::response::HttpResponse;
+use crate::result::Json;
 
 pub trait IntoResponse {
     fn into_response(self, context: &mut HttpContext);
@@ -34,6 +36,13 @@ impl ResponseValue {
 
     pub fn apply(self, context: &mut HttpContext) {
         (self.responder)(self.value, context);
+    }
+
+    pub fn json<T>(value: T) -> Self
+    where
+        T: Serialize + Send + 'static,
+    {
+        Self::new(Json(value))
     }
 }
 

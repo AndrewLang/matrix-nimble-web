@@ -1,3 +1,4 @@
+use std::any::type_name;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -50,6 +51,18 @@ impl ServiceProvider {
         }
     }
 
+    pub fn get<T>(&self) -> Arc<T>
+    where
+        T: Send + Sync + 'static,
+    {
+        self.resolve::<T>().unwrap_or_else(|| {
+            panic!(
+                "Service `{}` is not registered",
+                Self::short_type_name::<T>()
+            )
+        })
+    }
+
     pub fn create_scope(&self) -> ServiceScope {
         ServiceScope {
             provider: ServiceProvider {
@@ -88,5 +101,12 @@ impl ServiceProvider {
         T: Send + Sync + 'static,
     {
         (registration.factory)(self).downcast::<T>().ok()
+    }
+
+    fn short_type_name<T>() -> &'static str {
+        type_name::<T>()
+            .rsplit("::")
+            .next()
+            .unwrap_or(type_name::<T>())
     }
 }
