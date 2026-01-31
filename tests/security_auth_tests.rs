@@ -43,9 +43,9 @@ struct TestEndpoint {
     trace: Trace,
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl HttpHandler for TestEndpoint {
-    async fn invoke(&self, context: &HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         self.trace.push("endpoint");
         let subject = context
             .get::<IdentityContext>()

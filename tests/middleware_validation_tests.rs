@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use nimble_web::config::ConfigBuilder;
 use nimble_web::di::ServiceContainer;
 use nimble_web::http::context::HttpContext;
@@ -9,6 +10,7 @@ use nimble_web::pipeline::pipeline::{Pipeline, PipelineError};
 
 struct MarkerMiddleware;
 
+#[async_trait]
 impl Middleware for MarkerMiddleware {
     async fn handle(
         &self,

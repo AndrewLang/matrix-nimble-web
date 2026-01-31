@@ -22,9 +22,9 @@ use async_trait::async_trait;
 
 struct HealthHandler;
 
-#[async_trait(?Send)]
+#[async_trait]
 impl HttpHandler for HealthHandler {
-    async fn invoke(&self, _context: &HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new("ok"))
     }
 }
