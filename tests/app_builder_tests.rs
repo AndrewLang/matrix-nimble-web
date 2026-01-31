@@ -7,6 +7,7 @@ use nimble_web::background::job::{BackgroundJob, JobContext, JobResult};
 use nimble_web::background::job_queue::JobQueue;
 use nimble_web::controller::controller::Controller;
 
+use nimble_web::app::application::Application;
 use nimble_web::endpoint::http_handler::HttpHandler;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
@@ -14,7 +15,6 @@ use nimble_web::http::response::HttpResponse;
 use nimble_web::http::response_body::ResponseBody;
 use nimble_web::pipeline::pipeline::PipelineError;
 use nimble_web::result::into_response::ResponseValue;
-use nimble_web::app::application::Application;
 use tokio::runtime::Runtime;
 
 fn env_lock() -> MutexGuard<'static, ()> {

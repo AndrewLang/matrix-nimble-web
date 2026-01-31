@@ -24,6 +24,8 @@ pub mod prelude;
 pub mod result;
 pub mod routing;
 pub mod security;
+#[cfg(feature = "testbot")]
+pub mod testbot;
 pub mod testkit;
 pub mod validation;
 pub mod websocket;

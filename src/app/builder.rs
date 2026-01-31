@@ -149,12 +149,22 @@ impl AppBuilder {
 
     pub fn use_address_env(&mut self, env_name: &str) -> &mut Self {
         let address = std::env::var(env_name).unwrap_or_else(|_| "0.0.0.0:8080".to_string());
+        log::debug!(
+            "Reading address from environment variable: {}, value: {}",
+            env_name,
+            address
+        );
         self.address = Some(address);
         self
     }
 
     pub fn use_address_env_or(&mut self, env_name: &str, default: &str) -> &mut Self {
         let address = std::env::var(env_name).unwrap_or_else(|_| default.to_string());
+        log::debug!(
+            "Reading address from environment variable: {}, value: {}",
+            env_name,
+            address
+        );
         self.address = Some(address);
         self
     }
@@ -226,6 +236,8 @@ impl AppBuilder {
                 .map(|queue| (*queue).clone()),
         };
         let address = address.unwrap_or_else(|| "0.0.0.0:8080".to_string());
+        log::info!("Application will bind to address: {}", address);
+
         let pipeline = if has_routes {
             let mut middlewares: Vec<Box<dyn DynMiddleware>> = Vec::new();
 
