@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use sqlx::postgres::PgRow;
-use sqlx::{PgPool, Postgres, QueryBuilder};
+use sqlx::{Postgres, PgPool, QueryBuilder};
 
 use crate::data::paging::{Page, PageRequest};
 use crate::data::provider::{DataError, DataProvider, DataResult};
@@ -30,7 +30,6 @@ pub struct PostgresProvider<E: Entity> {
 
 impl<E: Entity> PostgresProvider<E> {
     pub fn new(pool: PgPool) -> Self {
-        log::info!("Creating PostgresProvider for entity: {}", E::name());
         Self {
             pool,
             schema: None,
@@ -138,6 +137,9 @@ impl<E: Entity> PostgresProvider<E> {
             Value::DateTime(value) => {
                 builder.push_bind(value);
             }
+            Value::Uuid(value) => {
+                builder.push_bind(value);
+            }
             Value::List(_) => {
                 builder.push("NULL");
             }
@@ -145,6 +147,13 @@ impl<E: Entity> PostgresProvider<E> {
     }
 
     fn map_sqlx_error(err: sqlx::Error) -> DataError {
+        if let sqlx::Error::Database(db_err) = &err {
+            if let Some(code) = db_err.code() {
+                if code == "23505" {
+                    return DataError::Conflict(db_err.message().to_string());
+                }
+            }
+        }
         DataError::Provider(err.to_string())
     }
 

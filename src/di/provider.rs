@@ -51,7 +51,6 @@ impl ServiceProvider {
     {
         let type_id = TypeId::of::<T>();
         let type_name = Self::short_type_name::<T>();
-        log::debug!("Resolving service: {}", type_name);
 
         if RESOLVE_STACK.with(|stack| stack.borrow().contains(&type_id)) {
             let cycle = RESOLVE_NAME_STACK.with(|names| {

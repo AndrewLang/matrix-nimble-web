@@ -3,6 +3,7 @@ use futures_util::TryStreamExt;
 use mongodb::bson::{self, Bson, Document, Regex};
 use mongodb::options::FindOptions;
 use mongodb::{Collection, Database};
+use uuid::Uuid;
 
 use crate::data::paging::Page;
 use crate::data::provider::{DataError, DataProvider, DataResult};
@@ -600,6 +601,10 @@ where
             Value::List(values) => Ok(Bson::Array(
                 values.iter().map(Self::to_bson).collect::<Result<_, _>>()?,
             )),
+            Value::Uuid(value) => Ok(Bson::Binary(bson::Binary {
+                subtype: bson::spec::BinarySubtype::Uuid,
+                bytes: value.as_bytes().to_vec(),
+            })),
         }
     }
 

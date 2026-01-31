@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use std::marker::PhantomData;
+use uuid::Uuid;
 
 use crate::data::paging::PageRequest;
 use crate::entity::entity::Entity;
@@ -34,6 +35,7 @@ pub enum Value {
     Bytes(Vec<u8>),
     DateTime(DateTime<Utc>),
     List(Vec<Value>),
+    Uuid(Uuid),
 }
 
 #[derive(Debug, Clone, PartialEq)]
