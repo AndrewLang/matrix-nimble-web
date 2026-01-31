@@ -114,11 +114,27 @@ impl TestBot {
         scenario.setup(self).await?;
         for step in scenario.steps() {
             log::info!("  → Step: {} ⇢ {}", step.name(), step.endpoint());
-            step.run(self).await?;
+
+            if let Err(err) = step.run(self).await {
+                log::error!(
+                    "    ✗ Step: {} ⇢ failed while hitting '{}' : {}",
+                    step.name(),
+                    step.endpoint(),
+                    err
+                );
+
+                self.context.record_assertion_failure(format!(
+                    "Step '{}' failed while hitting '{}': {}",
+                    step.name(),
+                    step.endpoint(),
+                    err
+                ));
+                continue;
+            }
             log::info!("    ✔ Step: {} ⇢ OK", step.name());
         }
         scenario.teardown(self).await?;
-        log::info!("🤖 Finished scenario: {}", scenario.name());
+        log::info!("  Finished scenario: {}", scenario.name());
         log::info!("");
 
         Ok(())
@@ -144,7 +160,7 @@ impl TestBot {
 
         let count = failures.len();
 
-        log::error!("🤖  {} assertion failure(s)", count);
+        log::error!("🔥  {} assertion failure(s)", count);
         for (idx, failure) in failures.iter().enumerate() {
             log::error!("  💥 {}. {}", idx + 1, failure);
         }

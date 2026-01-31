@@ -70,7 +70,7 @@ impl DefaultRouter {
             );
 
             for r in routes.iter() {
-                log::info!("    ⇢  Example: {:<8} {}", r.method(), r.path());
+                log::info!("    ⇢  Path: {:<8} {}", r.method(), r.path());
             }
 
             log::info!("");
