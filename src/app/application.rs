@@ -116,8 +116,8 @@ impl Application {
         HttpContext::new(request, services, self.config.clone())
     }
 
-    pub(crate) fn handle_request_context(&self, context: &mut HttpContext) {
-        if let Err(e) = self.pipeline.run(context) {
+    pub(crate) async fn handle_request_context(&self, context: &mut HttpContext) {
+        if let Err(e) = self.pipeline.run_async(context).await {
             let status = context.response().status();
             log::error!("❌ Pipeline error: {} {:?}", status, e);
 
@@ -129,7 +129,7 @@ impl Application {
         }
     }
 
-    pub fn handle_http_request(&self, request: HttpRequest) -> HttpResponse {
+    pub async fn handle_http_request(&self, request: HttpRequest) -> HttpResponse {
         log::debug!(
             "Handling HTTP request: {} {}",
             request.method(),
@@ -137,7 +137,7 @@ impl Application {
         );
 
         let mut context = self.create_context(request);
-        self.handle_request_context(&mut context);
+        self.handle_request_context(&mut context).await;
         context.response().clone()
     }
 

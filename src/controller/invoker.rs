@@ -26,7 +26,7 @@ where
     pub fn handler<F, R>(&self, func: F) -> HttpEndpointHandler
     where
         F: Fn(&C, &mut HttpContext) -> R + Send + Sync + 'static,
-        R: IntoResponse + Send + 'static,
+        R: IntoResponse + Send + Sync + 'static,
     {
         HttpEndpointHandler::new(ControllerHandler {
             controller: self.controller.clone(),
@@ -45,7 +45,7 @@ impl<C, F, R> HttpHandler for ControllerHandler<C, F>
 where
     C: Send + Sync + 'static,
     F: Fn(&C, &mut HttpContext) -> R + Send + Sync + 'static,
-    R: IntoResponse + Send + 'static,
+    R: IntoResponse + Send + Sync + 'static,
 {
     async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         let value = (self.func)(self.controller.as_ref(), context);
@@ -63,7 +63,7 @@ impl ControllerInvokerMiddleware {
     }
 }
 
-#[allow(async_fn_in_trait)]
+#[async_trait]
 impl Middleware for ControllerInvokerMiddleware {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         if let Some(route_data) = context.route() {

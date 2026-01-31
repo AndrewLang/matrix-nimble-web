@@ -3,6 +3,7 @@ use crate::pipeline::middleware::Middleware;
 use crate::pipeline::next::Next;
 use crate::pipeline::pipeline::PipelineError;
 use crate::result::into_response::IntoResponse;
+use async_trait::async_trait;
 
 pub struct ValidationMiddleware;
 
@@ -12,6 +13,7 @@ impl ValidationMiddleware {
     }
 }
 
+#[async_trait]
 impl Middleware for ValidationMiddleware {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         let endpoint = match context.endpoint() {

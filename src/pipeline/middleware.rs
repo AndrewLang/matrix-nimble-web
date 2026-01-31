@@ -6,9 +6,11 @@ use crate::pipeline::next::Next;
 use crate::pipeline::pipeline::PipelineError;
 
 pub(crate) type MiddlewareFuture<'a> =
-    Pin<Box<dyn Future<Output = Result<(), PipelineError>> + 'a>>;
+    Pin<Box<dyn Future<Output = Result<(), PipelineError>> + Send + 'a>>;
 
-#[allow(async_fn_in_trait)]
+use async_trait::async_trait;
+
+#[async_trait]
 pub trait Middleware: Send + Sync {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError>;
 }
@@ -22,6 +24,6 @@ where
     T: Middleware + Send + Sync,
 {
     fn handle<'a>(&'a self, context: &'a mut HttpContext, next: Next<'a>) -> MiddlewareFuture<'a> {
-        Box::pin(async move { T::handle(self, context, next).await })
+        T::handle(self, context, next)
     }
 }

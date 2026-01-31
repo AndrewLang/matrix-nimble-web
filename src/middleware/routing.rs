@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::endpoint::registry::EndpointRegistry;
@@ -34,6 +35,7 @@ impl RoutingMiddleware {
     }
 }
 
+#[async_trait]
 impl Middleware for RoutingMiddleware {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         if let Some(route_data) = self.router.match_request(context.request()) {
