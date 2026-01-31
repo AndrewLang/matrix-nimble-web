@@ -62,11 +62,11 @@ use async_trait::async_trait;
 
 struct HelloHandler;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for HelloHandler {
     async fn invoke(
         &self,
-        _context: &mut nimble_web::http::context::HttpContext,
+        _context: &nimble_web::http::context::HttpContext,
     ) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new("hello"))
     }

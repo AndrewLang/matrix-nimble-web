@@ -86,9 +86,9 @@ struct TestEndpoint {
     trace: Trace,
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for TestEndpoint {
-    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         self.trace.push("invoked");
         Ok(ResponseValue::new("ok"))
     }
@@ -96,9 +96,9 @@ impl HttpHandler for TestEndpoint {
 
 struct ParamEndpoint;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for ParamEndpoint {
-    async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         let id = context
             .route()
             .and_then(|route| route.params().get("id"))
@@ -110,9 +110,9 @@ impl HttpHandler for ParamEndpoint {
 
 struct ErrorEndpoint;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for ErrorEndpoint {
-    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new(HttpError::new(404, "not found")))
     }
 }

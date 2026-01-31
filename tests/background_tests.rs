@@ -200,9 +200,9 @@ use async_trait::async_trait;
 
 struct EnqueueHandler;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for EnqueueHandler {
-    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         if let Some(calls) = test_calls() {
             calls.lock().expect("calls lock").push("handler");
         }

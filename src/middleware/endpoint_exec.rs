@@ -11,7 +11,9 @@ impl EndpointExecutionMiddleware {
     }
 }
 
-#[allow(async_fn_in_trait)]
+use async_trait::async_trait;
+
+#[async_trait]
 impl Middleware for EndpointExecutionMiddleware {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         log::debug!("EndpointExecutionMiddleware: {}", context.request().path());

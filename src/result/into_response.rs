@@ -11,18 +11,18 @@ pub trait IntoResponse {
 
 #[doc(hidden)]
 pub struct ResponseValue {
-    value: Box<dyn Any + Send>,
-    responder: fn(Box<dyn Any + Send>, &mut HttpContext),
+    value: Box<dyn Any + Send + Sync>,
+    responder: fn(Box<dyn Any + Send + Sync>, &mut HttpContext),
 }
 
 impl ResponseValue {
     pub fn new<T>(value: T) -> Self
     where
-        T: IntoResponse + Send + 'static,
+        T: IntoResponse + Send + Sync + 'static,
     {
-        fn respond<T>(value: Box<dyn Any + Send>, context: &mut HttpContext)
+        fn respond<T>(value: Box<dyn Any + Send + Sync>, context: &mut HttpContext)
         where
-            T: IntoResponse + Send + 'static,
+            T: IntoResponse + Send + Sync + 'static,
         {
             let value = *value.downcast::<T>().expect("response value type mismatch");
             value.into_response(context);
@@ -40,7 +40,7 @@ impl ResponseValue {
 
     pub fn json<T>(value: T) -> Self
     where
-        T: Serialize + Send + 'static,
+        T: Serialize + Send + Sync + 'static,
     {
         Self::new(Json(value))
     }

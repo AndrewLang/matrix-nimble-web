@@ -100,18 +100,18 @@ struct HealthHandler;
 
 use async_trait::async_trait;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for HealthHandler {
-    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new(Json(Health { status: "ok" })))
     }
 }
 
 struct ListPhotosHandler;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for ListPhotosHandler {
-    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new(Json(vec![Photo {
             id: 1,
             name: "sunset".to_string(),
@@ -121,9 +121,9 @@ impl HttpHandler for ListPhotosHandler {
 
 struct GetPhotoHandler;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for GetPhotoHandler {
-    async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         let id = context
             .route()
             .and_then(|route| route.params().get("id"))
@@ -138,9 +138,9 @@ impl HttpHandler for GetPhotoHandler {
 
 struct CreatePhotoHandler;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for CreatePhotoHandler {
-    async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         let payload: CreatePhoto = context
             .read_json()
             .map_err(|err| PipelineError::message(err.message()))?;
@@ -161,9 +161,9 @@ impl HttpHandler for CreatePhotoHandler {
 
 struct SecureHandler;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for SecureHandler {
-    async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         let subject = context
             .get::<IdentityContext>()
             .map(|identity| identity.identity().subject().to_string())

@@ -437,12 +437,6 @@ where
         builder.push(" = ");
         Self::bind_value(&mut builder, value);
 
-        log::debug!(
-            "PostgresProvider::get_by SQL: {}; {:?}",
-            builder.sql(),
-            &self.pool.options()
-        );
-
         let row = builder
             .build_query_as::<E>()
             .fetch_optional(&self.pool)

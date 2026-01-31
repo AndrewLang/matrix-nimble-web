@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use std::sync::Arc;
 
 use crate::http::context::HttpContext;
@@ -15,6 +16,7 @@ impl AuthenticationMiddleware {
     }
 }
 
+#[async_trait]
 impl Middleware for AuthenticationMiddleware {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         let identity = if let Some(header) = context.request().headers().get("authorization") {
