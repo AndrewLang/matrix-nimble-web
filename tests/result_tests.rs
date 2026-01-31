@@ -265,9 +265,9 @@ where
 
 struct ValueEndpoint;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for ValueEndpoint {
-    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new("from-endpoint"))
     }
 }

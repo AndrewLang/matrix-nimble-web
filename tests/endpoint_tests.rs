@@ -48,9 +48,9 @@ struct RecordingEndpoint {
     status: u16,
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for RecordingEndpoint {
-    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         self.trace.push("handled");
         let mut response = HttpResponse::new();
         response.set_status(self.status);
@@ -62,9 +62,9 @@ struct ParamEndpoint {
     trace: Trace,
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for ParamEndpoint {
-    async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         let id = context
             .route()
             .and_then(|route| route.params().get("id"))
@@ -79,9 +79,9 @@ impl HttpHandler for ParamEndpoint {
 
 struct ErrorEndpoint;
 
-#[async_trait]
+#[async_trait(?Send)]
 impl HttpHandler for ErrorEndpoint {
-    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &HttpContext) -> Result<ResponseValue, PipelineError> {
         Err(PipelineError::message("boom"))
     }
 }

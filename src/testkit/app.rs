@@ -44,16 +44,17 @@ impl TestApp {
     }
 
     pub fn run(self, request: HttpRequest) -> HttpResponse {
+        let rt = tokio::runtime::Runtime::new().expect("failed to create runtime");
+        rt.block_on(self.run_async(request))
+    }
+
+    pub async fn run_async(self, request: HttpRequest) -> HttpResponse {
         let mut builder = self.builder.expect("test app builder");
         if let Some(queue) = self.background_queue {
             builder.use_job_queue(queue.as_ref().clone());
         }
         let app = builder.build();
-        app.handle_http_request(request)
-    }
-
-    pub async fn run_async(self, request: HttpRequest) -> HttpResponse {
-        self.run(request)
+        app.handle_http_request(request).await
     }
 
     pub(crate) fn ensure_background_queue(&mut self) -> Arc<InMemoryJobQueue> {
