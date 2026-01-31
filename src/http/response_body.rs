@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::io;
 
-pub trait ResponseBodyStream: Send {
+pub trait ResponseBodyStream: Send + Sync {
     fn read_chunk(&mut self) -> io::Result<Option<Vec<u8>>>;
 }
 

@@ -90,7 +90,7 @@ impl HttpContext {
 
     pub fn set_response_value<T>(&mut self, value: T)
     where
-        T: crate::result::IntoResponse + Send + 'static,
+        T: crate::result::IntoResponse + Send + Sync + 'static,
     {
         self.response_value = Some(ResponseValue::new(value));
     }
@@ -156,7 +156,7 @@ impl HttpContext {
 }
 
 impl HttpContext {
-    pub fn json<T: DeserializeOwned>(&mut self) -> Result<T, PipelineError> {
+    pub fn json<T: DeserializeOwned>(&self) -> Result<T, PipelineError> {
         self.read_json()
             .map_err(|e| PipelineError::message(&e.message()))
     }
