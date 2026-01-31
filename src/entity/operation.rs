@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use crate::data::paging::PageRequest;
 use crate::data::provider::DataProvider;
+use crate::data::repository::Repository;
 use crate::endpoint::http_handler::HttpHandler;
 use crate::entity::entity::Entity;
 use crate::entity::hooks::EntityHooks;
@@ -68,11 +69,11 @@ where
     H: EntityHooks<E> + 'static,
 {
     async fn invoke(&self, context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
-        let provider = context
+        let repository = context
             .services()
-            .resolve::<Arc<dyn DataProvider<E>>>()
+            .resolve::<Repository<E>>()
             .ok_or_else(|| {
-                PipelineError::message(&format!("DataProvider<{}> not found", E::name()))
+                PipelineError::message(&format!("Repository<{}> not found", E::name()))
             })?;
 
         match self.operation {
@@ -89,7 +90,7 @@ where
                     .unwrap_or(20);
 
                 let request = PageRequest::new(page, page_size);
-                let result = provider
+                let result = repository
                     .list(request)
                     .await
                     .map_err(|e| PipelineError::message(&format!("{:?}", e)))?;
@@ -104,7 +105,7 @@ where
                 let id = E::Id::from_str(id_str)
                     .map_err(|_| PipelineError::message("invalid id format"))?;
 
-                let result = provider
+                let result = repository
                     .get(&id)
                     .await
                     .map_err(|e| PipelineError::message(&format!("{:?}", e)))?;
@@ -124,7 +125,7 @@ where
                     .await
                     .map_err(|e| PipelineError::message(&e.to_string()))?;
 
-                let result = provider
+                let result = repository
                     .create(entity)
                     .await
                     .map_err(|e| PipelineError::message(&format!("{:?}", e)))?;
@@ -146,7 +147,7 @@ where
                     .await
                     .map_err(|e| PipelineError::message(&e.to_string()))?;
 
-                let result = provider
+                let result = repository
                     .update(entity)
                     .await
                     .map_err(|e| PipelineError::message(&format!("{:?}", e)))?;
@@ -172,7 +173,7 @@ where
                 let id = E::Id::from_str(id_str)
                     .map_err(|_| PipelineError::message("invalid id format"))?;
 
-                let success = provider
+                let success = repository
                     .delete(&id)
                     .await
                     .map_err(|e| PipelineError::message(&format!("{:?}", e)))?;

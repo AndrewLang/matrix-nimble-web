@@ -69,13 +69,8 @@ impl DefaultRouter {
                 methods.join(", ")
             );
 
-            let max_count = 6;
-            for r in routes.iter().take(max_count) {
+            for r in routes.iter() {
                 log::info!("    ⇢  Example: {:<8} {}", r.method(), r.path());
-            }
-
-            if count > max_count {
-                log::info!("    ... ({} more)", count - max_count);
             }
 
             log::info!("");
