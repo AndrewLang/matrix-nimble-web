@@ -1,5 +1,6 @@
 ﻿use std::sync::{Arc, Mutex};
 
+use async_trait::async_trait;
 use nimble_web::config::ConfigBuilder;
 use nimble_web::di::ServiceContainer;
 use nimble_web::http::context::HttpContext;
@@ -35,6 +36,7 @@ struct OrderMiddleware {
     trace: Trace,
 }
 
+#[async_trait]
 impl Middleware for OrderMiddleware {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         let _ = context;
@@ -48,6 +50,7 @@ struct StopMiddleware {
     trace: Trace,
 }
 
+#[async_trait]
 impl Middleware for StopMiddleware {
     async fn handle(
         &self,
@@ -64,6 +67,7 @@ struct StatusMiddleware {
     status: u16,
 }
 
+#[async_trait]
 impl Middleware for StatusMiddleware {
     async fn handle(
         &self,
@@ -79,6 +83,7 @@ struct ItemWriter {
     value: u64,
 }
 
+#[async_trait]
 impl Middleware for ItemWriter {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         context.insert::<u64>(self.value);
@@ -91,6 +96,7 @@ struct ItemReader {
     trace: Trace,
 }
 
+#[async_trait]
 impl Middleware for ItemReader {
     async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         let value = context.get::<u64>().copied().unwrap_or_default();
@@ -103,6 +109,7 @@ impl Middleware for ItemReader {
 
 struct ErrorMiddleware;
 
+#[async_trait]
 impl Middleware for ErrorMiddleware {
     async fn handle(&self, _ctx: &mut HttpContext, _next: Next<'_>) -> Result<(), PipelineError> {
         Err(PipelineError::message("boom"))

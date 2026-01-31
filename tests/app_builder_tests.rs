@@ -8,10 +8,14 @@ use nimble_web::background::job_queue::JobQueue;
 use nimble_web::controller::controller::Controller;
 
 use nimble_web::endpoint::http_handler::HttpHandler;
+use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
+use nimble_web::http::response::HttpResponse;
 use nimble_web::http::response_body::ResponseBody;
 use nimble_web::pipeline::pipeline::PipelineError;
 use nimble_web::result::into_response::ResponseValue;
+use nimble_web::app::application::Application;
+use tokio::runtime::Runtime;
 
 fn env_lock() -> MutexGuard<'static, ()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -62,12 +66,9 @@ use async_trait::async_trait;
 
 struct HelloHandler;
 
-#[async_trait(?Send)]
+#[async_trait]
 impl HttpHandler for HelloHandler {
-    async fn invoke(
-        &self,
-        _context: &nimble_web::http::context::HttpContext,
-    ) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new("hello"))
     }
 }
@@ -117,7 +118,7 @@ fn app_builder_routes_requests_with_controller() {
     builder.use_controller::<HelloController>();
     let app = builder.build();
 
-    let response = app.handle_http_request(HttpRequest::new("GET", "/hello"));
+    let response = handle_request(&app, HttpRequest::new("GET", "/hello"));
     assert_eq!(response.status(), 200);
     assert_eq!(response.body(), &ResponseBody::Text("hello".to_string()));
 }
@@ -125,7 +126,7 @@ fn app_builder_routes_requests_with_controller() {
 #[test]
 fn app_builder_without_routes_returns_not_found() {
     let app = AppBuilder::new().build();
-    let response = app.handle_http_request(HttpRequest::new("GET", "/missing"));
+    let response = handle_request(&app, HttpRequest::new("GET", "/missing"));
 
     assert_eq!(response.status(), 404);
     assert_eq!(response.body(), &ResponseBody::Empty);
@@ -227,4 +228,9 @@ fn unique_suffix() -> u128 {
         .duration_since(UNIX_EPOCH)
         .expect("time")
         .as_nanos()
+}
+
+fn handle_request(app: &Application, request: HttpRequest) -> HttpResponse {
+    let runtime = Runtime::new().expect("runtime");
+    runtime.block_on(app.handle_http_request(request))
 }

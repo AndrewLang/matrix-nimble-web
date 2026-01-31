@@ -49,9 +49,9 @@ impl Controller for HelloController {
 
 struct HelloHandler;
 
-#[async_trait(?Send)]
+#[async_trait]
 impl HttpHandler for HelloHandler {
-    async fn invoke(&self, _context: &HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new("ok"))
     }
 }

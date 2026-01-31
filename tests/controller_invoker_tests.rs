@@ -79,9 +79,9 @@ fn controller_invoker_middleware_sets_endpoint_from_registry() {
 
 struct NullHandler;
 
-#[async_trait(?Send)]
+#[async_trait]
 impl nimble_web::endpoint::http_handler::HttpHandler for NullHandler {
-    async fn invoke(&self, _context: &HttpContext) -> Result<ResponseValue, PipelineError> {
+    async fn invoke(&self, _context: &mut HttpContext) -> Result<ResponseValue, PipelineError> {
         Ok(ResponseValue::new(""))
     }
 }
