@@ -6,7 +6,7 @@ pub mod http;
 pub mod scenario;
 pub mod step;
 
-pub use assert::AssertResponse;
+pub use assert::{AssertResponse, Asset};
 pub use bot::TestBot;
 pub use context::TestContext;
 pub use error::TestError;

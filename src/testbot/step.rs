@@ -3,8 +3,8 @@ use async_trait::async_trait;
 
 use super::TestResult;
 
-#[async_trait]
-pub trait TestStep: Send + Sync {
+#[async_trait(?Send)]
+pub trait TestStep {
     fn name(&self) -> &'static str;
 
     fn endpoint(&self) -> &'static str;

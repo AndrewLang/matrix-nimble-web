@@ -5,6 +5,7 @@ use std::collections::HashMap;
 pub struct TestContext {
     pub access_token: Option<String>,
     pub vars: HashMap<String, Value>,
+    assertion_failures: Vec<String>,
 }
 
 impl TestContext {
@@ -14,5 +15,13 @@ impl TestContext {
 
     pub fn get(&self, key: &str) -> Option<&Value> {
         self.vars.get(key)
+    }
+
+    pub fn record_assertion_failure(&mut self, message: impl Into<String>) {
+        self.assertion_failures.push(message.into());
+    }
+
+    pub fn take_assertion_failures(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.assertion_failures)
     }
 }

@@ -3,8 +3,8 @@ use super::step::TestStep;
 use super::TestResult;
 use async_trait::async_trait;
 
-#[async_trait]
-pub trait TestScenario: Send + Sync {
+#[async_trait(?Send)]
+pub trait TestScenario {
     fn name(&self) -> &'static str;
 
     async fn setup(&self, _bot: &mut TestBot) -> TestResult {
