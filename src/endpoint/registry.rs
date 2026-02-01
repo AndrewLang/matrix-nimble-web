@@ -114,3 +114,12 @@ impl Default for EndpointRegistry {
         }
     }
 }
+
+impl Clone for EndpointRegistry {
+    fn clone(&self) -> Self {
+        Self {
+            routes: self.routes.clone(),
+            endpoints: self.endpoints.clone(),
+        }
+    }
+}

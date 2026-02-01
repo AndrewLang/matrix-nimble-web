@@ -1,20 +1,25 @@
 use std::env;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
+use nimble_web::app::application::Application;
 use nimble_web::app::builder::AppBuilder;
 use nimble_web::background::in_memory_queue::InMemoryJobQueue;
 use nimble_web::background::job::{BackgroundJob, JobContext, JobResult};
 use nimble_web::background::job_queue::JobQueue;
 use nimble_web::controller::controller::Controller;
-
 use nimble_web::endpoint::http_handler::HttpHandler;
+use nimble_web::endpoint::route::EndpointRoute;
+use nimble_web::entity::operation::EntityOperation;
 use nimble_web::http::context::HttpContext;
 use nimble_web::http::request::HttpRequest;
 use nimble_web::http::response::HttpResponse;
 use nimble_web::http::response_body::ResponseBody;
 use nimble_web::pipeline::pipeline::PipelineError;
 use nimble_web::result::into_response::ResponseValue;
-use nimble_web::app::application::Application;
+use nimble_web::routing::route::Route;
+use nimble_web::security::policy::Policy;
+use nimble_web::Entity;
+use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 
 fn env_lock() -> MutexGuard<'static, ()> {
@@ -52,8 +57,6 @@ impl Drop for EnvGuard {
 
 struct HelloController;
 
-use nimble_web::endpoint::route::EndpointRoute;
-
 impl Controller for HelloController {
     fn routes() -> Vec<EndpointRoute> {
         vec![EndpointRoute::get("/hello", HelloHandler).build()]
@@ -88,6 +91,21 @@ impl BackgroundJob for CountJob {
         let mut guard = self.calls.lock().expect("calls lock");
         *guard += 1;
         JobResult::Success
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct AlbumEntity;
+
+impl Entity for AlbumEntity {
+    type Id = String;
+
+    fn id(&self) -> &Self::Id {
+        unimplemented!()
+    }
+
+    fn name() -> &'static str {
+        "Album"
     }
 }
 
@@ -220,6 +238,43 @@ fn app_exposes_router_with_registered_routes() {
         .any(|r| r.method() == "GET" && r.path() == "/hello"));
 
     app.log_routes();
+}
+
+#[test]
+fn entity_operations_with_policy_attach_policy() {
+    let mut builder = AppBuilder::new();
+    builder.use_entity_with_operations_and_policy::<AlbumEntity>(
+        &[EntityOperation::List, EntityOperation::Get],
+        Policy::Authenticated,
+    );
+
+    let registry = builder.endpoint_registry_clone();
+    let list_route = Route::new("GET", "/api/albums/{page}/{pageSize}");
+    let get_route = Route::new("GET", "/api/albums/{id}");
+
+    let list_endpoint = registry
+        .find_endpoint(&list_route)
+        .expect("list endpoint should be registered");
+    assert_eq!(
+        list_endpoint
+            .metadata()
+            .policy()
+            .cloned()
+            .expect("list policy"),
+        Policy::Authenticated
+    );
+
+    let get_endpoint = registry
+        .find_endpoint(&get_route)
+        .expect("get endpoint should be registered");
+    assert_eq!(
+        get_endpoint
+            .metadata()
+            .policy()
+            .cloned()
+            .expect("get policy"),
+        Policy::Authenticated
+    );
 }
 
 fn unique_suffix() -> u128 {

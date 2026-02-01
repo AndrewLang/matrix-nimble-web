@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use sqlx::postgres::PgRow;
-use sqlx::{Postgres, PgPool, QueryBuilder};
+use sqlx::types::Uuid as SqlxUuid;
+use sqlx::{PgPool, Postgres, QueryBuilder};
 
 use crate::data::paging::{Page, PageRequest};
 use crate::data::provider::{DataError, DataProvider, DataResult};
@@ -138,7 +139,8 @@ impl<E: Entity> PostgresProvider<E> {
                 builder.push_bind(value);
             }
             Value::Uuid(value) => {
-                builder.push_bind(value);
+                let sql_uuid: SqlxUuid = value.into();
+                builder.push_bind(sql_uuid);
             }
             Value::List(_) => {
                 builder.push("NULL");

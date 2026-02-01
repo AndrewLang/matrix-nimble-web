@@ -1,0 +1,36 @@
+use serde_json::Value;
+use std::collections::HashMap;
+
+#[derive(Default)]
+pub struct TestContext {
+    pub access_token: Option<String>,
+    pub vars: HashMap<String, Value>,
+    assertion_failures: Vec<String>,
+}
+
+impl TestContext {
+    pub fn set(&mut self, key: impl Into<String>, value: Value) {
+        self.vars.insert(key.into(), value);
+    }
+
+    pub fn set_str(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.vars.insert(key.into(), Value::String(value.into()));
+    }
+
+    pub fn get(&self, key: &str) -> Option<&Value> {
+        self.vars.get(key)
+    }
+
+    pub fn get_str(&self, key: &str) -> Option<String> {
+        self.get(key)
+            .and_then(|v| v.as_str().map(|s| s.to_string()))
+    }
+
+    pub fn record_assertion_failure(&mut self, message: impl Into<String>) {
+        self.assertion_failures.push(message.into());
+    }
+
+    pub fn take_assertion_failures(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.assertion_failures)
+    }
+}

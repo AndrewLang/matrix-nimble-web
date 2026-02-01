@@ -28,7 +28,7 @@ use crate::pipeline::pipeline::Pipeline;
 use crate::routing::default_router::DefaultRouter;
 use crate::routing::router::Router;
 use crate::security::auth::AuthenticationMiddleware;
-use crate::security::policy::AuthorizationMiddleware;
+use crate::security::policy::{AuthorizationMiddleware, Policy};
 use crate::validation::ValidationMiddleware;
 use crate::Configuration;
 
@@ -149,12 +149,22 @@ impl AppBuilder {
 
     pub fn use_address_env(&mut self, env_name: &str) -> &mut Self {
         let address = std::env::var(env_name).unwrap_or_else(|_| "0.0.0.0:8080".to_string());
+        log::debug!(
+            "Reading address from environment variable: {}, value: {}",
+            env_name,
+            address
+        );
         self.address = Some(address);
         self
     }
 
     pub fn use_address_env_or(&mut self, env_name: &str, default: &str) -> &mut Self {
         let address = std::env::var(env_name).unwrap_or_else(|_| default.to_string());
+        log::debug!(
+            "Reading address from environment variable: {}, value: {}",
+            env_name,
+            address
+        );
         self.address = Some(address);
         self
     }
@@ -226,6 +236,8 @@ impl AppBuilder {
                 .map(|queue| (*queue).clone()),
         };
         let address = address.unwrap_or_else(|| "0.0.0.0:8080".to_string());
+        log::info!("Application will bind to address: {}", address);
+
         let pipeline = if has_routes {
             let mut middlewares: Vec<Box<dyn DynMiddleware>> = Vec::new();
 
@@ -291,6 +303,10 @@ impl AppBuilder {
         self.endpoint_registry.delete(path, handler);
         self
     }
+
+    pub fn endpoint_registry_clone(&self) -> EndpointRegistry {
+        self.endpoint_registry.clone()
+    }
 }
 
 #[cfg(feature = "postgres")]
@@ -348,6 +364,23 @@ impl AppBuilder {
         self.use_entity_with_hooks::<E, DefaultEntityHooks>(DefaultEntityHooks, operations)
     }
 
+    pub fn use_entity_with_operations_and_policy<E>(
+        &mut self,
+        operations: &[EntityOperation],
+        policy: Policy,
+    ) -> &mut Self
+    where
+        E: Entity + Serialize + DeserializeOwned + 'static,
+        E::Id: FromStr + Send + Sync + 'static,
+    {
+        self.entity_registry.register::<E>();
+        self.use_entity_with_hooks_and_policy::<E, DefaultEntityHooks>(
+            DefaultEntityHooks,
+            operations,
+            policy,
+        )
+    }
+
     pub fn use_entity_with_hooks<E, H>(
         &mut self,
         hooks: H,
@@ -392,6 +425,70 @@ impl AppBuilder {
                     self.route_delete(
                         &format!("{}/{{id}}", base_path),
                         OperationHandler::new(EntityOperation::Delete, hooks.clone()),
+                    );
+                }
+            }
+        }
+
+        self
+    }
+
+    pub fn use_entity_with_hooks_and_policy<E, H>(
+        &mut self,
+        hooks: H,
+        operations: &[EntityOperation],
+        policy: Policy,
+    ) -> &mut Self
+    where
+        E: Entity + Serialize + DeserializeOwned + 'static,
+        E::Id: FromStr + Send + Sync + 'static,
+        H: EntityHooks<E> + 'static,
+    {
+        let hooks = Arc::new(hooks);
+        let plural = E::plural_name().to_lowercase();
+        let base_path = format!("/api/{plural}");
+
+        for operation in operations {
+            let handler = OperationHandler::new(*operation, hooks.clone());
+            match operation {
+                EntityOperation::List => {
+                    self.endpoint_registry.add_with_policy(
+                        "GET",
+                        &format!("{}/{{page}}/{{pageSize}}", base_path),
+                        handler,
+                        policy.clone(),
+                    );
+                }
+                EntityOperation::Get => {
+                    self.endpoint_registry.add_with_policy(
+                        "GET",
+                        &format!("{}/{{id}}", base_path),
+                        handler,
+                        policy.clone(),
+                    );
+                }
+                EntityOperation::Create => {
+                    self.endpoint_registry.add_with_policy(
+                        "POST",
+                        &base_path,
+                        handler,
+                        policy.clone(),
+                    );
+                }
+                EntityOperation::Update => {
+                    self.endpoint_registry.add_with_policy(
+                        "PUT",
+                        &base_path,
+                        handler,
+                        policy.clone(),
+                    );
+                }
+                EntityOperation::Delete => {
+                    self.endpoint_registry.add_with_policy(
+                        "DELETE",
+                        &format!("{}/{{id}}", base_path),
+                        handler,
+                        policy.clone(),
                     );
                 }
             }

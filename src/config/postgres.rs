@@ -37,7 +37,7 @@ impl PostgresConfig {
             pg_config.schema = Some(schema.to_string());
         }
 
-        log::debug!("PostgresConfig loaded: {:?}", pg_config);
+        log::trace!("PostgresConfig loaded: {:?}", pg_config);
         pg_config
     }
 }
