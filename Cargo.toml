@@ -71,3 +71,4 @@ testbot = ["reqwest"]
 
 [dev-dependencies]
 libc = "0.2"
+reqwest = { version = "0.13.1", features = ["json"] }
