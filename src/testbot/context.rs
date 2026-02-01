@@ -13,8 +13,17 @@ impl TestContext {
         self.vars.insert(key.into(), value);
     }
 
+    pub fn set_str(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.vars
+            .insert(key.into(), Value::String(value.into()));
+    }
+
     pub fn get(&self, key: &str) -> Option<&Value> {
         self.vars.get(key)
+    }
+
+    pub fn get_str(&self, key: &str) -> Option<String> {
+        self.get(key).and_then(|v| v.as_str().map(|s| s.to_string()))
     }
 
     pub fn record_assertion_failure(&mut self, message: impl Into<String>) {

@@ -139,7 +139,7 @@ impl TestBot {
                 );
 
                 self.context.record_assertion_failure(format!(
-                    "Step '{}' failed at '{}' ⇢{}",
+                    "Step '{}' failed at '{}' ⇢ {}",
                     step.name(),
                     step.endpoint(),
                     err

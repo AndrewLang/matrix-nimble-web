@@ -11,10 +11,16 @@ pub trait AssertResponse {
 impl AssertResponse for HttpResponse {
     fn assert_status(&self, expected: u16) -> TestResult<&Self> {
         if self.status != expected {
-            return Err(TestError::msg(format!(
-                "✘ Expected status {}, got {}",
-                expected, self.status
-            )));
+            let body = self.text();
+            let detail = if body.is_empty() {
+                format!("Expected status {}, got {}", expected, self.status)
+            } else {
+                format!(
+                    "Expected status {}, got {}: {}",
+                    expected, self.status, body
+                )
+            };
+            return Err(TestError::msg(detail));
         }
 
         Ok(self)
