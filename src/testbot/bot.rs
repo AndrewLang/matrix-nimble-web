@@ -1,6 +1,9 @@
 use serde::Serialize;
+use std::fmt;
 use std::future::Future;
 use std::pin::Pin;
+
+use log::Level;
 
 use super::assert::Asset;
 use super::context::TestContext;
@@ -15,6 +18,7 @@ pub struct TestBot {
     pub context: TestContext,
     client: HttpClient,
     scenarios: Vec<ScenarioTask>,
+    steps_run: usize,
 }
 
 impl TestBot {
@@ -23,6 +27,7 @@ impl TestBot {
             context: TestContext::default(),
             client: HttpClient::new(base_url),
             scenarios: Vec::new(),
+            steps_run: 0,
         })
     }
 
@@ -64,6 +69,14 @@ impl TestBot {
 
     pub fn asset(&mut self) -> Asset<'_> {
         Asset::new(self)
+    }
+
+    pub fn log(&self, level: Level, msg: impl fmt::Display) {
+        log::log!(level, "          {}", msg);
+    }
+
+    pub fn log_info(&self, msg: impl fmt::Display) {
+        self.log(Level::Info, msg);
     }
 
     pub fn assert_equals<T: PartialEq + std::fmt::Debug>(
@@ -112,26 +125,28 @@ impl TestBot {
         log::info!("🤖 Start running scenario: {}", scenario.name());
 
         scenario.setup(self).await?;
-        for step in scenario.steps() {
+        let steps = scenario.steps();
+        self.steps_run += steps.len();
+        for step in steps {
             log::info!("  → Step: {} ⇢ {}", step.name(), step.endpoint());
 
             if let Err(err) = step.run(self).await {
                 log::error!(
-                    "    ✗ Step: {} ⇢ failed while hitting '{}' : {}",
+                    "    ✗ Step: {} ⇢ failed at '{}' ⇢ {}",
                     step.name(),
                     step.endpoint(),
                     err
                 );
 
                 self.context.record_assertion_failure(format!(
-                    "Step '{}' failed while hitting '{}': {}",
+                    "Step '{}' failed at '{}' ⇢{}",
                     step.name(),
                     step.endpoint(),
                     err
                 ));
                 continue;
             }
-            log::info!("    ✔ Step: {} ⇢ OK", step.name());
+            log::info!("    ✔     {} ⇢ OK", step.name());
         }
         scenario.teardown(self).await?;
         log::info!("  Finished scenario: {}", scenario.name());
@@ -154,13 +169,20 @@ impl TestBot {
 
     fn print_result(&mut self) {
         let failures = self.context.take_assertion_failures();
+        let steps = self.steps_run;
+        self.steps_run = 0;
         if failures.is_empty() {
+            log::info!("✅  All {} steps passed", steps);
             return;
         }
 
         let count = failures.len();
 
-        log::error!("🔥  {} assertion failure(s)", count);
+        log::error!(
+            "🔥  {} assertion failure(s) ({} steps processed)",
+            count,
+            steps
+        );
         for (idx, failure) in failures.iter().enumerate() {
             log::error!("  💥 {}. {}", idx + 1, failure);
         }

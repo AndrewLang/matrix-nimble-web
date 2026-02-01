@@ -49,10 +49,13 @@ impl HttpClient {
             .bytes()
             .await
             .map_err(|err| TestError::msg(err.to_string()))?;
+        let body_vec = body.to_vec();
+        let body_text = String::from_utf8_lossy(&body_vec).to_string();
 
         Ok(HttpResponse {
             status,
-            body: body.to_vec(),
+            body: body_vec,
+            body_text,
         })
     }
 
@@ -90,10 +93,15 @@ impl HttpClient {
 pub struct HttpResponse {
     pub status: u16,
     pub body: Vec<u8>,
+    body_text: String,
 }
 
 impl HttpResponse {
     pub fn json<T: DeserializeOwned>(&self) -> TestResult<T> {
         serde_json::from_slice(&self.body).map_err(|e| TestError::msg(e.to_string()))
+    }
+
+    pub fn text(&self) -> &str {
+        &self.body_text
     }
 }
