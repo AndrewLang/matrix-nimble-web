@@ -57,6 +57,12 @@ impl FileResponse {
             "jpg" | "jpeg" => "image/jpeg",
             "gif" => "image/gif",
             "svg" => "image/svg+xml",
+            "webp" => "image/webp",
+            "mp4" => "video/mp4",
+            "webm" => "video/webm",
+            "pdf" => "application/pdf",
+            "woff" => "font/woff",
+            "woff2" => "font/woff2",
             _ => return None,
         };
         Some(content_type.to_string())
@@ -73,9 +79,16 @@ impl IntoResponse for FileResponse {
             FileSource::Bytes(_) => None,
         };
 
+        let mut content_length = None;
+
         let body = match self.source {
             FileSource::Path(path) => match File::open(&path) {
-                Ok(file) => ResponseBody::Stream(Box::new(FileStream::new(file))),
+                Ok(file) => {
+                    if let Ok(metadata) = file.metadata() {
+                        content_length = Some(metadata.len());
+                    }
+                    ResponseBody::Stream(Box::new(FileStream::new(file)))
+                }
                 Err(err) => {
                     response.set_status(match err.kind() {
                         std::io::ErrorKind::NotFound => 404,
@@ -84,22 +97,34 @@ impl IntoResponse for FileResponse {
                     ResponseBody::Empty
                 }
             },
-            FileSource::Bytes(bytes) => ResponseBody::Bytes(bytes),
+            FileSource::Bytes(bytes) => {
+                content_length = Some(bytes.len() as u64);
+                ResponseBody::Bytes(bytes)
+            }
         };
 
         response.set_body(body);
 
-        let content_type = self
-            .content_type
-            .or(inferred)
-            .unwrap_or_else(|| "application/octet-stream".to_string());
-        response.headers_mut().insert("content-type", &content_type);
+        // Only set headers if we are returning success
+        if response.status() == 200 {
+            let content_type = self
+                .content_type
+                .or(inferred)
+                .unwrap_or_else(|| "application/octet-stream".to_string());
+            response.headers_mut().insert("content-type", &content_type);
 
-        if let Some(filename) = self.filename {
-            response.headers_mut().insert(
-                "content-disposition",
-                &format!("attachment; filename=\"{}\"", filename),
-            );
+            if let Some(len) = content_length {
+                response
+                    .headers_mut()
+                    .insert("content-length", &len.to_string());
+            }
+
+            if let Some(filename) = self.filename {
+                response.headers_mut().insert(
+                    "content-disposition",
+                    &format!("attachment; filename=\"{}\"", filename),
+                );
+            }
         }
     }
 }

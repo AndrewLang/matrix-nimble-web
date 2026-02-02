@@ -138,7 +138,7 @@ impl Application {
 
         let mut context = self.create_context(request);
         self.handle_request_context(&mut context).await;
-        context.response().clone()
+        context.into_response()
     }
 
     fn parse_address(&self) -> Result<SocketAddr, AppError> {

@@ -64,6 +64,10 @@ impl HttpContext {
         &mut self.response
     }
 
+    pub fn into_response(self) -> HttpResponse {
+        self.response
+    }
+
     pub fn services(&self) -> &ServiceProvider {
         &self.services
     }

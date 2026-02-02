@@ -236,10 +236,25 @@ fn file_response_missing_path_sets_not_found() {
 
     assert_eq!(context.response().status(), 404);
     assert_eq!(context.response().body(), &ResponseBody::Empty);
+    assert_eq!(context.response().headers().get("content-type"), None);
+}
+
+#[test]
+fn file_response_sets_content_length() {
+    let mut context = make_context("GET", "/file-len");
+    let temp_path = std::env::temp_dir().join(format!("nimble-web-len-{}.txt", unique_suffix()));
+    let data = b"some data";
+    std::fs::write(&temp_path, data).expect("write temp file");
+
+    FileResponse::from_path(&temp_path).into_response(&mut context);
+
+    assert_eq!(context.response().status(), 200);
     assert_eq!(
-        context.response().headers().get("content-type"),
-        Some("text/plain; charset=utf-8")
+        context.response().headers().get("content-length"),
+        Some(data.len().to_string().as_str())
     );
+
+    let _ = std::fs::remove_file(&temp_path);
 }
 
 struct Status<T> {
