@@ -10,6 +10,8 @@ use crate::data::query::{
 };
 use crate::entity::entity::Entity;
 pub mod migration;
+#[cfg(feature = "postgres")]
+pub mod value_builder;
 
 pub trait PostgresEntity:
     Entity + for<'r> sqlx::FromRow<'r, PgRow> + Send + Sync + Unpin + 'static
