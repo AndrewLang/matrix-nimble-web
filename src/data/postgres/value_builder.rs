@@ -93,12 +93,9 @@ impl PostgresValueBuilder {
         Self::optional_u64(value.map(|v| v as u64))
     }
 
-    pub fn optional_datetime(value: &Option<String>) -> Value {
+    pub fn optional_datetime(value: &Option<DateTime<Utc>>) -> Value {
         match value {
-            Some(v) => match DateTime::parse_from_rfc3339(v) {
-                Ok(dt) => Value::DateTime(dt.with_timezone(&Utc)),
-                Err(_) => Value::Null,
-            },
+            Some(v) => Value::DateTime(v.clone()),
             None => Value::Null,
         }
     }
