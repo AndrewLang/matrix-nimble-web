@@ -3,3 +3,4 @@ pub mod error;
 pub mod logging;
 pub mod routing;
 pub mod validation;
+pub mod cors;
