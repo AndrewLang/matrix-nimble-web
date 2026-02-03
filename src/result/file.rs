@@ -10,6 +10,7 @@ pub struct FileResponse {
     source: FileSource,
     content_type: Option<String>,
     filename: Option<String>,
+    headers: Vec<(String, String)>,
 }
 
 enum FileSource {
@@ -23,6 +24,7 @@ impl FileResponse {
             source: FileSource::Path(path.into()),
             content_type: None,
             filename: None,
+            headers: Vec::new(),
         }
     }
 
@@ -31,6 +33,7 @@ impl FileResponse {
             source: FileSource::Bytes(bytes),
             content_type: None,
             filename: None,
+            headers: Vec::new(),
         }
     }
 
@@ -41,6 +44,11 @@ impl FileResponse {
 
     pub fn with_filename(mut self, filename: &str) -> Self {
         self.filename = Some(filename.to_string());
+        self
+    }
+
+    pub fn with_header(mut self, key: &str, value: &str) -> Self {
+        self.headers.push((key.to_string(), value.to_string()));
         self
     }
 
@@ -112,6 +120,10 @@ impl IntoResponse for FileResponse {
                 .or(inferred)
                 .unwrap_or_else(|| "application/octet-stream".to_string());
             response.headers_mut().insert("content-type", &content_type);
+
+            for (key, value) in self.headers {
+                response.headers_mut().insert(&key, &value);
+            }
 
             if let Some(len) = content_length {
                 response
