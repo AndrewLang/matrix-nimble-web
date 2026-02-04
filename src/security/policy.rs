@@ -8,6 +8,7 @@ use async_trait::async_trait;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Policy {
     Authenticated,
+    InRole(String),
     Custom(String),
 }
 
@@ -17,6 +18,9 @@ impl Policy {
             Policy::Authenticated => ctx
                 .get::<IdentityContext>()
                 .map_or(false, |identity| identity.is_authenticated()),
+            Policy::InRole(role) => ctx.get::<IdentityContext>().map_or(false, |identity| {
+                identity.is_authenticated() && identity.identity().claims().roles().contains(role)
+            }),
             Policy::Custom(_) => false,
         }
     }

@@ -13,11 +13,11 @@ pub struct Claims {
     pub iss: Option<String>,
 
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
-    roles: HashSet<String>,
+    pub roles: HashSet<String>,
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
-    permissions: HashSet<String>,
+    pub permissions: HashSet<String>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    attributes: HashMap<String, String>,
+    pub attributes: HashMap<String, String>,
 }
 
 impl Claims {
