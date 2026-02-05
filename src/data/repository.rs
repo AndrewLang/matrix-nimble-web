@@ -38,32 +38,26 @@ impl<E: Entity> Repository<E> {
 #[async_trait]
 impl<E: Entity> DataProvider<E> for Repository<E> {
     async fn create(&self, entity: E) -> DataResult<E> {
-        log::debug!("Repository create {}", E::name());
         self.provider.create(entity).await
     }
 
     async fn get(&self, id: &E::Id) -> DataResult<Option<E>> {
-        log::debug!("Repository get {}", E::name());
         self.provider.get(id).await
     }
 
     async fn update(&self, entity: E) -> DataResult<E> {
-        log::debug!("Repository update {}", E::name());
         self.provider.update(entity).await
     }
 
     async fn delete(&self, id: &E::Id) -> DataResult<bool> {
-        log::debug!("Repository delete {}", E::name());
         self.provider.delete(id).await
     }
 
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>> {
-        log::debug!("Repository query {} ({})", E::name(), E::plural_name());
         self.provider.query(query).await
     }
 
     async fn get_by(&self, column: &str, value: Value) -> DataResult<Option<E>> {
-        log::debug!("Repository get_by {} column={}", E::name(), column);
         self.provider.get_by(column, value).await
     }
 }
