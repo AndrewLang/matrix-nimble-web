@@ -359,8 +359,8 @@ where
             .await;
 
         match &row {
-            Ok(Some(_)) => log::debug!("PostgresProvider::get: found row"),
-            Ok(None) => log::debug!("PostgresProvider::get: row not found"),
+            Ok(Some(_)) => log::trace!("PostgresProvider::get: found row"),
+            Ok(None) => log::trace!("PostgresProvider::get: row not found"),
             Err(e) => log::error!("PostgresProvider::get: error: {}", e),
         }
 
