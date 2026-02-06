@@ -31,11 +31,13 @@ impl HyperRuntime {
     async fn handle_request(app: Arc<Application>, req: Request<Incoming>) -> Response<BoxedBody> {
         let method = req.method().as_str().to_string();
         let path = req.uri().path().to_string();
+        let query = req.uri().query().map(|v| v.to_string());
 
         log::debug!("--------------------------------");
         log::debug!("Processing request {} {}", method, path);
 
         let mut request = HttpRequest::new(&method, &path);
+        request.set_query(query);
         for (name, value) in req.headers().iter() {
             if let Ok(value) = value.to_str() {
                 request.headers_mut().insert(name.as_str(), value);
