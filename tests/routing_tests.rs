@@ -63,6 +63,19 @@ fn multiple_routes_match_correct_one() {
 }
 
 #[test]
+fn prefers_more_specific_route_over_parametric_list() {
+    let mut router = DefaultRouter::new();
+    router.add_route(Route::new("GET", "/api/albums/{page}/{pageSize}"));
+    router.add_route(Route::new("GET", "/api/albums/{id}/comments"));
+
+    let request = HttpRequest::new("GET", "/api/albums/abc123/comments");
+    let matched = router.match_request(&request).expect("route match");
+
+    assert_eq!(matched.route().path(), "/api/albums/{id}/comments");
+    assert_eq!(matched.params().get("id").map(String::as_str), Some("abc123"));
+}
+
+#[test]
 fn no_routes_registered_returns_none() {
     let router = DefaultRouter::new();
     let request = HttpRequest::new("GET", "/photos");

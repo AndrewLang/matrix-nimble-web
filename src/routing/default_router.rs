@@ -84,12 +84,42 @@ impl Router for DefaultRouter {
     }
 
     fn match_request(&self, request: &HttpRequest) -> Option<RouteData> {
+        fn route_specificity(path: &str) -> (usize, usize) {
+            let trimmed = path.trim_matches('/');
+            if trimmed.is_empty() {
+                return (0, 0);
+            }
+
+            let segments: Vec<&str> = trimmed.split('/').collect();
+            let static_count = segments
+                .iter()
+                .filter(|segment| {
+                    let s: &str = *segment;
+                    !(s.len() >= 3 && s.starts_with('{') && s.ends_with('}'))
+                })
+                .count();
+
+            (static_count, segments.len())
+        }
+
+        let mut best_match: Option<(RouteData, usize, usize)> = None;
+
         for route in &self.routes {
             if let Some(data) = route.match_path(request.method(), request.path()) {
-                return Some(data);
+                let (static_count, segment_count) = route_specificity(route.path());
+                match &best_match {
+                    None => best_match = Some((data, static_count, segment_count)),
+                    Some((_, best_static, best_segments)) => {
+                        if static_count > *best_static
+                            || (static_count == *best_static && segment_count > *best_segments)
+                        {
+                            best_match = Some((data, static_count, segment_count));
+                        }
+                    }
+                }
             }
         }
 
-        None
+        best_match.map(|(data, _, _)| data)
     }
 }
