@@ -38,7 +38,8 @@ impl Middleware for AuthenticationMiddleware {
                         }
                         Err(err) => {
                             log::warn!("Token validation failed: {}", err);
-                            Arc::new(AnonymousIdentity::new())
+                            context.response_mut().set_status(401);
+                            return Ok(());
                         }
                     }
                 } else {
