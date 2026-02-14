@@ -43,11 +43,7 @@ impl Default for CorsMiddleware {
 
 #[async_trait]
 impl Middleware for CorsMiddleware {
-    async fn handle(
-        &self,
-        context: &mut HttpContext,
-        next: Next<'_>,
-    ) -> Result<(), PipelineError> {
+    async fn handle(&self, context: &mut HttpContext, next: Next<'_>) -> Result<(), PipelineError> {
         let method = context.request().method().to_string();
         let response = context.response_mut();
         let headers = response.headers_mut();

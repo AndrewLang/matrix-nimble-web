@@ -1,7 +1,7 @@
 #![cfg(feature = "postgres")]
 
-use chrono::{DateTime, Utc};
 use crate::data::query::Value;
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 pub struct PostgresValueBuilder;

@@ -72,7 +72,10 @@ fn prefers_more_specific_route_over_parametric_list() {
     let matched = router.match_request(&request).expect("route match");
 
     assert_eq!(matched.route().path(), "/api/albums/{id}/comments");
-    assert_eq!(matched.params().get("id").map(String::as_str), Some("abc123"));
+    assert_eq!(
+        matched.params().get("id").map(String::as_str),
+        Some("abc123")
+    );
 }
 
 #[test]
