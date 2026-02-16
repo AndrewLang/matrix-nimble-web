@@ -16,6 +16,7 @@ pub use crate::config::source::*;
 pub use crate::config::*;
 pub use crate::controller::controller::*;
 pub use crate::controller::invoker::*;
+pub use crate::controller::route::*;
 pub use crate::data::memory_repository::*;
 #[cfg(feature = "mongodb")]
 pub use crate::data::mongo::*;

@@ -31,3 +31,4 @@ pub mod validation;
 pub mod websocket;
 pub use prelude::*;
 mod runtime;
+pub use nimble_web_macros::{delete, get, post, put};
