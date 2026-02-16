@@ -6,7 +6,7 @@ use syn::parse::Parse;
 use syn::parse::ParseStream;
 use syn::parse_macro_input;
 use syn::spanned::Spanned;
-use syn::{ItemImpl, LitStr, Token};
+use syn::{Expr, ItemImpl, LitStr, Token};
 
 #[proc_macro_attribute]
 pub fn get(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -50,14 +50,20 @@ impl Method {
 fn expand_route(method: Method, attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as RouteArgs);
     let path_lit = args.path;
+    let policy_expr = args.policy;
     let item_impl = parse_macro_input!(item as ItemImpl);
-    match generate_impl(method, path_lit, item_impl) {
+    match generate_impl(method, path_lit, policy_expr, item_impl) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
 }
 
-fn generate_impl(method: Method, path: LitStr, item_impl: ItemImpl) -> syn::Result<proc_macro2::TokenStream> {
+fn generate_impl(
+    method: Method,
+    path: LitStr,
+    policy: Option<Expr>,
+    item_impl: ItemImpl,
+) -> syn::Result<proc_macro2::TokenStream> {
     let handler_ty = item_impl.self_ty.clone();
     let handler_expr = match handler_ty.as_ref() {
         syn::Type::Path(type_path) => {
@@ -74,6 +80,9 @@ fn generate_impl(method: Method, path: LitStr, item_impl: ItemImpl) -> syn::Resu
 
     let crate_path = resolve_crate_path();
     let builder_ident = method.builder_ident();
+    let policy_tokens = policy
+        .map(|policy_expr| quote! { .with_policy(#policy_expr) })
+        .unwrap_or_default();
     let generics = item_impl.generics.clone();
     let (impl_generics, _, where_clause) = generics.split_for_impl();
     let tokens = quote! {
@@ -81,7 +90,13 @@ fn generate_impl(method: Method, path: LitStr, item_impl: ItemImpl) -> syn::Resu
 
         impl #impl_generics #crate_path::controller::route::HttpRoute for #handler_ty #where_clause {
             fn route() -> #crate_path::endpoint::route::RouteBuilder {
-                #crate_path::endpoint::route::EndpointRoute::#builder_ident(#path, #handler_expr)
+                #crate_path::endpoint::route::EndpointRoute::#builder_ident(#path, #handler_expr)#policy_tokens
+            }
+        }
+
+        #crate_path::inventory::submit! {
+            #crate_path::controller::attribute_route::RegisteredHttpRoute {
+                build: || <#handler_ty as #crate_path::controller::route::HttpRoute>::endpoint(),
             }
         }
     };
@@ -90,6 +105,7 @@ fn generate_impl(method: Method, path: LitStr, item_impl: ItemImpl) -> syn::Resu
 
 struct RouteArgs {
     path: LitStr,
+    policy: Option<Expr>,
 }
 
 impl Parse for RouteArgs {
@@ -97,42 +113,61 @@ impl Parse for RouteArgs {
         if input.is_empty() {
             return Err(syn::Error::new(
                 Span::call_site(),
-                "route attribute requires a path literal",
+                "route attribute requires a path literal (and optional policy = ...)",
             ));
         }
+
+        let mut path: Option<LitStr> = None;
+        let mut policy: Option<Expr> = None;
 
         if input.peek(syn::LitStr) {
-            let path: LitStr = input.parse()?;
-            if !input.is_empty() {
-                return Err(syn::Error::new(
-                    input.span(),
-                    "unexpected tokens after route literal",
-                ));
+            path = Some(input.parse()?);
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
             }
-            return Ok(Self { path });
         }
 
-        let ident: syn::Ident = input.parse()?;
-        if ident != "path" {
-            return Err(syn::Error::new(
-                ident.span(),
-                "expected string literal or path = \"/route\"",
-            ));
+        while !input.is_empty() {
+            let ident: syn::Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+
+            match ident.to_string().as_str() {
+                "path" => {
+                    if path.is_some() {
+                        return Err(syn::Error::new(ident.span(), "path provided more than once"));
+                    }
+                    path = Some(input.parse::<LitStr>()?);
+                }
+                "policy" => {
+                    if policy.is_some() {
+                        return Err(syn::Error::new(
+                            ident.span(),
+                            "policy provided more than once",
+                        ));
+                    }
+                    policy = Some(input.parse::<Expr>()?);
+                }
+                _ => {
+                    return Err(syn::Error::new(
+                        ident.span(),
+                        "expected `path` or `policy`",
+                    ));
+                }
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
         }
 
-        input.parse::<Token![=]>()?;
-        let path: LitStr = input.parse()?;
-        if input.peek(Token![,]) {
-            input.parse::<Token![,]>()?;
-        }
-        if !input.is_empty() {
-            return Err(syn::Error::new(
-                input.span(),
-                "unexpected tokens after path literal",
-            ));
-        }
+        let path = path.ok_or_else(|| {
+            syn::Error::new(
+                Span::call_site(),
+                "route attribute requires a path literal or path = \"/route\"",
+            )
+        })?;
 
-        Ok(Self { path })
+        Ok(Self { path, policy })
     }
 }
 

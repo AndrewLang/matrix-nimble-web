@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::controller::attribute_route;
 use crate::controller::controller::Controller;
 use crate::endpoint::endpoint::Endpoint;
 use crate::endpoint::http_endpoint::HttpEndpoint;
@@ -23,6 +24,22 @@ impl EndpointRegistry {
     pub fn register<C: Controller>(&mut self) {
         let routes = C::routes();
         for endpoint_route in routes {
+            self.add_endpoint_route(endpoint_route);
+        }
+    }
+
+    pub fn register_attribute_routes(&mut self) {
+        for endpoint_route in attribute_route::collected_routes() {
+            let method = endpoint_route.route.method().to_string();
+            let path = endpoint_route.route.path().to_string();
+            if self.has_route(&method, &path) {
+                log::debug!(
+                    "Skipping duplicate attribute route registration for {} {}",
+                    method,
+                    path
+                );
+                continue;
+            }
             self.add_endpoint_route(endpoint_route);
         }
     }
@@ -88,6 +105,12 @@ impl EndpointRegistry {
 
     pub fn add_endpoint_route(&mut self, endpoint_route: EndpointRoute) {
         self.add_route(endpoint_route.route, endpoint_route.endpoint);
+    }
+
+    fn has_route(&self, method: &str, path: &str) -> bool {
+        self.routes
+            .iter()
+            .any(|route| route.method() == method && route.path() == path)
     }
 
     pub fn routes(&self) -> &[Route] {

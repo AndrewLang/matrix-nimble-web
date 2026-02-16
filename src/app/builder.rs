@@ -201,7 +201,7 @@ impl AppBuilder {
     pub fn build(self) -> Application {
         let AppBuilder {
             pipeline,
-            endpoint_registry,
+            mut endpoint_registry,
             mut router,
             mut services,
             hosted_services,
@@ -210,6 +210,8 @@ impl AppBuilder {
             address,
             config_builder,
         } = self;
+
+        endpoint_registry.register_attribute_routes();
 
         for route in endpoint_registry.routes() {
             router.add_route(route.clone());
