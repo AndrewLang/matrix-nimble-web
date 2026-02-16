@@ -128,7 +128,7 @@ impl ServiceProvider {
             return existing.downcast::<T>().ok();
         }
 
-        let created = (registration.factory)(self);
+        let created = (registration.factory)(self.as_arc());
 
         let stored = {
             let mut guard = cache.lock().expect("cache poisoned");
@@ -145,7 +145,7 @@ impl ServiceProvider {
     where
         T: Send + Sync + 'static,
     {
-        (registration.factory)(self).downcast::<T>().ok()
+        (registration.factory)(self.as_arc()).downcast::<T>().ok()
     }
 
     fn short_type_name<T>() -> &'static str {
@@ -153,6 +153,14 @@ impl ServiceProvider {
             .rsplit("::")
             .next()
             .unwrap_or(type_name::<T>())
+    }
+
+    fn as_arc(&self) -> Arc<ServiceProvider> {
+        Arc::new(ServiceProvider {
+            registrations: Arc::clone(&self.registrations),
+            singletons: Arc::clone(&self.singletons),
+            scoped: Arc::clone(&self.scoped),
+        })
     }
 }
 

@@ -21,10 +21,10 @@ impl ServiceContainer {
     pub fn register<T, F>(&mut self, lifetime: ServiceLifetime, factory: F)
     where
         T: Send + Sync + 'static,
-        F: Fn(&ServiceProvider) -> T + Send + Sync + 'static,
+        F: Fn(Arc<ServiceProvider>) -> T + Send + Sync + 'static,
     {
-        let factory = Arc::new(move |provider: &ServiceProvider| {
-            let value = factory(provider);
+        let factory = Arc::new(move |provider: Arc<ServiceProvider>| {
+            let value = factory(provider.clone());
             Arc::new(value) as Arc<dyn Any + Send + Sync>
         });
 
@@ -35,7 +35,7 @@ impl ServiceContainer {
     pub fn register_singleton<T, F>(&mut self, factory: F)
     where
         T: Send + Sync + 'static,
-        F: Fn(&ServiceProvider) -> T + Send + Sync + 'static,
+        F: Fn(Arc<ServiceProvider>) -> T + Send + Sync + 'static,
     {
         self.register(ServiceLifetime::Singleton, factory);
     }
@@ -43,7 +43,7 @@ impl ServiceContainer {
     pub fn register_scoped<T, F>(&mut self, factory: F)
     where
         T: Send + Sync + 'static,
-        F: Fn(&ServiceProvider) -> T + Send + Sync + 'static,
+        F: Fn(Arc<ServiceProvider>) -> T + Send + Sync + 'static,
     {
         self.register(ServiceLifetime::Scoped, factory);
     }
@@ -51,7 +51,7 @@ impl ServiceContainer {
     pub fn register_transient<T, F>(&mut self, factory: F)
     where
         T: Send + Sync + 'static,
-        F: Fn(&ServiceProvider) -> T + Send + Sync + 'static,
+        F: Fn(Arc<ServiceProvider>) -> T + Send + Sync + 'static,
     {
         self.register(ServiceLifetime::Transient, factory);
     }

@@ -75,7 +75,7 @@ impl AppBuilder {
     pub fn register_singleton<T, F>(&mut self, factory: F) -> &mut Self
     where
         T: Send + Sync + 'static,
-        F: Fn(&ServiceProvider) -> T + Send + Sync + 'static,
+        F: Fn(Arc<ServiceProvider>) -> T + Send + Sync + 'static,
     {
         self.services.register_singleton(factory);
         self
@@ -137,7 +137,7 @@ impl AppBuilder {
         self.job_queue = JobQueueConfig::InMemory;
         self.services
             .register_singleton::<Arc<dyn JobQueue>, _>(move |provider| {
-                Arc::new(InMemoryJobQueue::new(Arc::new(provider.clone())))
+                Arc::new(InMemoryJobQueue::new(provider))
             });
         self
     }
