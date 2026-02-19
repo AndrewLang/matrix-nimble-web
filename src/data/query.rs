@@ -126,4 +126,24 @@ impl<E: Entity> Query<E> {
     pub fn entity_plural_name(&self) -> &str {
         self.entity_plural_name.as_str()
     }
+
+    pub fn with_filter(mut self, field: impl Into<String>, value: Value) -> Self {
+        self.filters.push(Filter {
+            field: field.into(),
+            operator: FilterOperator::Eq,
+            value,
+        });
+        self
+    }
+
+    pub fn with_paging(mut self, page: u32, page_size: u32) -> Self {
+        self.paging = Some(PageRequest::new(page, page_size));
+        self
+    }
+
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        let page = self.paging.map(|p| p.page).unwrap_or(1);
+        self.paging = Some(PageRequest::new(page, page_size));
+        self
+    }
 }
