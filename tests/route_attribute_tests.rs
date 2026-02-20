@@ -70,18 +70,14 @@ fn attribute_routes_register_automatically() {
     let mut registry = EndpointRegistry::new();
     registry.register_attribute_routes();
 
-    assert!(
-        registry
-            .routes()
-            .iter()
-            .any(|route| route.method() == "GET" && route.path() == "/attr/get")
-    );
-    assert!(
-        registry
-            .routes()
-            .iter()
-            .any(|route| route.method() == "POST" && route.path() == "/attr/post")
-    );
+    assert!(registry
+        .routes()
+        .iter()
+        .any(|route| route.method() == "GET" && route.path() == "/attr/get"));
+    assert!(registry
+        .routes()
+        .iter()
+        .any(|route| route.method() == "POST" && route.path() == "/attr/post"));
 }
 
 #[test]

@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
-use proc_macro_crate::{crate_name, FoundCrate};
 use proc_macro2::Span;
+use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn::parse::Parse;
 use syn::parse::ParseStream;
@@ -134,7 +134,10 @@ impl Parse for RouteArgs {
             match ident.to_string().as_str() {
                 "path" => {
                     if path.is_some() {
-                        return Err(syn::Error::new(ident.span(), "path provided more than once"));
+                        return Err(syn::Error::new(
+                            ident.span(),
+                            "path provided more than once",
+                        ));
                     }
                     path = Some(input.parse::<LitStr>()?);
                 }
@@ -148,10 +151,7 @@ impl Parse for RouteArgs {
                     policy = Some(input.parse::<Expr>()?);
                 }
                 _ => {
-                    return Err(syn::Error::new(
-                        ident.span(),
-                        "expected `path` or `policy`",
-                    ));
+                    return Err(syn::Error::new(ident.span(), "expected `path` or `policy`"));
                 }
             }
 

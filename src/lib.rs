@@ -29,7 +29,7 @@ pub mod testbot;
 pub mod testkit;
 pub mod validation;
 pub mod websocket;
-pub use prelude::*;
 pub use inventory;
+pub use prelude::*;
 mod runtime;
 pub use nimble_web_macros::{delete, get, post, put};
