@@ -1,7 +1,7 @@
 #![cfg(feature = "postgres")]
 
 use crate::data::query::Value;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use uuid::Uuid;
 
 pub struct PostgresValueBuilder;
@@ -96,6 +96,13 @@ impl PostgresValueBuilder {
     pub fn optional_datetime(value: &Option<DateTime<Utc>>) -> Value {
         match value {
             Some(v) => Value::DateTime(v.clone()),
+            None => Value::Null,
+        }
+    }
+
+    pub fn optional_date(value: &Option<NaiveDate>) -> Value {
+        match value {
+            Some(v) => Value::Date(v.clone()),
             None => Value::Null,
         }
     }

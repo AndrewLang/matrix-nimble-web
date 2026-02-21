@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use std::marker::PhantomData;
 use uuid::Uuid;
 
@@ -33,6 +33,7 @@ pub enum Value {
     Float(f64),
     String(String),
     Bytes(Vec<u8>),
+    Date(NaiveDate),
     DateTime(DateTime<Utc>),
     List(Vec<Value>),
     Uuid(Uuid),

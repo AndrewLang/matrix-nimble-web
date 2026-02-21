@@ -137,6 +137,9 @@ impl<E: Entity> PostgresProvider<E> {
             Value::Bytes(value) => {
                 builder.push_bind(value);
             }
+            Value::Date(value) => {
+                builder.push_bind(value);
+            }
             Value::DateTime(value) => {
                 builder.push_bind(value);
             }

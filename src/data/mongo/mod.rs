@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::NaiveDate;
 use futures_util::TryStreamExt;
 use mongodb::bson::{self, Bson, Document, Regex};
 use mongodb::options::FindOptions;
@@ -595,6 +596,7 @@ where
                 subtype: bson::spec::BinarySubtype::Generic,
                 bytes: value.clone(),
             })),
+            Value::Date(value) => Self::date_to_bson(value),
             Value::DateTime(value) => Ok(Bson::DateTime(bson::DateTime::from_millis(
                 value.timestamp_millis(),
             ))),
@@ -610,6 +612,15 @@ where
 
     fn strip_prefix(value: &str) -> String {
         value.rsplit('.').next().unwrap_or(value).to_string()
+    }
+
+    fn date_to_bson(value: &NaiveDate) -> DataResult<Bson> {
+        let midnight = value.and_hms_opt(0, 0, 0).ok_or_else(|| {
+            DataError::InvalidQuery("invalid date value for BSON conversion".to_string())
+        })?;
+        Ok(Bson::DateTime(bson::DateTime::from_millis(
+            midnight.and_utc().timestamp_millis(),
+        )))
     }
 
     fn sql_like_to_regex(value: &str) -> String {
