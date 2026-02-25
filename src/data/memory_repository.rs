@@ -109,4 +109,8 @@ where
         // TODO: Implement filtering for MemoryRepository
         Ok(None)
     }
+
+    async fn all(&self, _query: Query<E>) -> DataResult<Vec<E>> {
+        Ok(self.snapshot())
+    }
 }

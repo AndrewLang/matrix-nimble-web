@@ -92,4 +92,11 @@ impl<E: Entity> DataProvider<E> for SharedProvider<E> {
     ) -> crate::data::provider::DataResult<Option<E>> {
         self.inner.get_by(column, value).await
     }
+
+    async fn all(
+        &self,
+        query: crate::data::query::Query<E>,
+    ) -> crate::data::provider::DataResult<Vec<E>> {
+        self.inner.all(query).await
+    }
 }

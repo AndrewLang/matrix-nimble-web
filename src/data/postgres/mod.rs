@@ -460,6 +460,21 @@ where
             .map_err(Self::map_sqlx_error)?;
         Ok(row)
     }
+
+    async fn all(&self, query: Query<E>) -> DataResult<Vec<E>> {
+        let mut builder = QueryBuilder::<Postgres>::new("SELECT t.* FROM ");
+        self.append_from_and_joins(&mut builder, &query);
+        self.append_filters(&mut builder, &query)?;
+        self.append_group_by(&mut builder, query.group_by.as_ref());
+        self.append_sorting(&mut builder, &query);
+
+        let items = builder
+            .build_query_as::<E>()
+            .fetch_all(&self.pool)
+            .await
+            .map_err(Self::map_sqlx_error)?;
+        Ok(items)
+    }
 }
 
 impl<E: Entity> PostgresProvider<E> {

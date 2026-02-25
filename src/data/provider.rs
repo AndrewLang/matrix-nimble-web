@@ -34,4 +34,6 @@ pub trait DataProvider<E: Entity>: Send + Sync {
         query.paging = Some(page);
         self.query(query).await
     }
+
+    async fn all(&self, query: Query<E>) -> DataResult<Vec<E>>;
 }

@@ -60,4 +60,8 @@ impl<E: Entity> DataProvider<E> for Repository<E> {
     async fn get_by(&self, column: &str, value: Value) -> DataResult<Option<E>> {
         self.provider.get_by(column, value).await
     }
+
+    async fn all(&self, query: Query<E>) -> DataResult<Vec<E>> {
+        self.provider.all(query).await
+    }
 }
