@@ -37,6 +37,12 @@ impl<E: Entity> QueryBuilder<E> {
         self
     }
 
+    pub fn distinct_by(mut self, column: &str) -> Self {
+        self.query.distinct = true;
+        self.query.distinct_by = Some(column.to_string());
+        self
+    }
+
     pub fn select(mut self, expression: &str) -> Self {
         self.query.select.push(Select {
             expression: expression.to_string(),

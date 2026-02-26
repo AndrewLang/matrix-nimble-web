@@ -49,6 +49,7 @@ impl Entity for Album {
 fn builder_starts_empty() {
     let query = QueryBuilder::<Photo>::new().build();
     assert!(!query.distinct);
+    assert!(query.distinct_by.is_none());
     assert!(query.select.is_empty());
     assert!(query.filters.is_empty());
     assert!(query.sorting.is_empty());
@@ -137,7 +138,19 @@ fn distinct_and_select_expression_supported() {
         .build();
 
     assert!(query.distinct);
+    assert!(query.distinct_by.is_none());
     assert_eq!(query.select.len(), 1);
     assert_eq!(query.select[0].expression, "to_char(p.day_date, 'YYYY')");
     assert_eq!(query.select[0].alias.as_deref(), Some("year"));
+}
+
+#[test]
+fn distinct_by_sets_column() {
+    let query = QueryBuilder::<Photo>::new()
+        .distinct_by("t.day_date")
+        .sort_desc("t.sort_date")
+        .build();
+
+    assert!(query.distinct);
+    assert_eq!(query.distinct_by.as_deref(), Some("t.day_date"));
 }

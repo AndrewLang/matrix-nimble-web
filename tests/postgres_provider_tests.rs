@@ -318,6 +318,19 @@ fn in_and_between_filters_translate() {
 }
 
 #[test]
+fn string_array_in_filter_translates() {
+    let mut query = Query::<Photo>::new();
+    query.filters.push(Filter {
+        field: "name".to_string(),
+        operator: FilterOperator::In,
+        value: Value::StringArray(vec!["a".to_string(), "b".to_string()]),
+    });
+
+    let sql = PostgresProvider::<Photo>::build_select_sql(&query);
+    assert!(sql.contains("name IN (?, ?)"));
+}
+
+#[test]
 fn like_and_null_filters_translate() {
     let mut query = Query::<Photo>::new();
     query.filters.push(Filter {
@@ -442,6 +455,19 @@ fn distinct_select_expression_translates() {
     assert!(sql.contains("SELECT DISTINCT to_char(p.day_date, 'YYYY') AS year"));
     assert!(sql.contains("FROM photos t"));
     assert!(sql.contains("ORDER BY year DESC"));
+}
+
+#[test]
+fn distinct_by_translates_to_distinct_on() {
+    let query = nimble_web::data::query_builder::QueryBuilder::<Photo>::new()
+        .distinct_by("t.day_date")
+        .sort_desc("t.sort_date")
+        .build();
+
+    let sql = PostgresProvider::<Photo>::build_select_sql(&query);
+    assert!(sql.contains("SELECT DISTINCT ON (t.day_date) t.*"));
+    assert!(sql.contains("FROM photos t"));
+    assert!(sql.contains("ORDER BY t.sort_date DESC"));
 }
 
 #[tokio::test]

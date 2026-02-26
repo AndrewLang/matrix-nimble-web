@@ -37,6 +37,7 @@ pub enum Value {
     Bytes(Vec<u8>),
     Date(NaiveDate),
     DateTime(DateTime<Utc>),
+    StringArray(Vec<String>),
     List(Vec<Value>),
     Uuid(Uuid),
 }
@@ -107,6 +108,7 @@ pub struct Query<E: Entity> {
     entity_name: &'static str,
     entity_plural_name: String,
     pub distinct: bool,
+    pub distinct_by: Option<String>,
     pub select: Vec<Select>,
     pub filters: Vec<Filter>,
     pub sorting: Vec<Sort>,
@@ -122,6 +124,7 @@ impl<E: Entity> Query<E> {
             entity_name: E::name(),
             entity_plural_name: E::plural_name(),
             distinct: false,
+            distinct_by: None,
             select: Vec::new(),
             filters: Vec::new(),
             sorting: Vec::new(),

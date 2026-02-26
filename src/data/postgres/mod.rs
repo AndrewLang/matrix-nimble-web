@@ -50,6 +50,7 @@ impl<E: Entity> PostgresProvider<E> {
             Value::Bytes(v) => query.bind(v),
             Value::Date(v) => query.bind(v),
             Value::DateTime(v) => query.bind(v),
+            Value::StringArray(v) => query.bind(v),
             Value::Uuid(v) => {
                 let sql_uuid: SqlxUuid = v.into();
                 query.bind(sql_uuid)
@@ -136,7 +137,11 @@ impl<E: Entity> PostgresProvider<E> {
     pub fn build_select_sql(query: &Query<E>) -> String {
         let mut sql = String::new();
         sql.push_str("SELECT ");
-        if query.distinct {
+        if let Some(column) = &query.distinct_by {
+            sql.push_str("DISTINCT ON (");
+            sql.push_str(column);
+            sql.push_str(") ");
+        } else if query.distinct {
             sql.push_str("DISTINCT ");
         }
         if query.select.is_empty() {
@@ -237,6 +242,9 @@ impl<E: Entity> PostgresProvider<E> {
             Value::DateTime(value) => {
                 builder.push_bind(value);
             }
+            Value::StringArray(value) => {
+                builder.push_bind(value);
+            }
             Value::Uuid(value) => {
                 let sql_uuid: SqlxUuid = value.into();
                 builder.push_bind(sql_uuid);
@@ -328,6 +336,7 @@ impl<E: Entity> PostgresProvider<E> {
                 }
                 let count = match &filter.value {
                     Value::List(values) => values.len(),
+                    Value::StringArray(values) => values.len(),
                     _ => 0,
                 };
                 for idx in 0..count.max(1) {
@@ -557,7 +566,8 @@ where
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>> {
         let total = self.count_total(&query).await?;
 
-        let mut builder = QueryBuilder::<Postgres>::new("SELECT t.* FROM ");
+        let mut builder = QueryBuilder::<Postgres>::new("");
+        self.append_select_prefix(&mut builder, &query);
         self.append_from_and_joins(&mut builder, &query);
         self.append_filters(&mut builder, &query)?;
         self.append_group_by(&mut builder, query.group_by.as_ref());
@@ -595,7 +605,8 @@ where
     }
 
     async fn all(&self, query: Query<E>) -> DataResult<Vec<E>> {
-        let mut builder = QueryBuilder::<Postgres>::new("SELECT t.* FROM ");
+        let mut builder = QueryBuilder::<Postgres>::new("");
+        self.append_select_prefix(&mut builder, &query);
         self.append_from_and_joins(&mut builder, &query);
         self.append_filters(&mut builder, &query)?;
         self.append_group_by(&mut builder, query.group_by.as_ref());
@@ -611,6 +622,18 @@ where
 }
 
 impl<E: Entity> PostgresProvider<E> {
+    fn append_select_prefix(&self, builder: &mut QueryBuilder<Postgres>, query: &Query<E>) {
+        builder.push("SELECT ");
+        if let Some(column) = &query.distinct_by {
+            builder.push("DISTINCT ON (");
+            builder.push(column);
+            builder.push(") ");
+        } else if query.distinct {
+            builder.push("DISTINCT ");
+        }
+        builder.push("t.* FROM ");
+    }
+
     fn append_from_and_joins(&self, builder: &mut QueryBuilder<Postgres>, query: &Query<E>) {
         builder.push(self.base_table());
         builder.push(" t");
@@ -701,17 +724,34 @@ impl<E: Entity> PostgresProvider<E> {
                     "NOT IN"
                 });
                 builder.push(" (");
-                let Value::List(values) = &filter.value else {
-                    return Err(DataError::InvalidQuery("IN requires list".to_string()));
-                };
-                if values.is_empty() {
-                    return Err(DataError::InvalidQuery("IN requires values".to_string()));
-                }
-                for (idx, value) in values.iter().cloned().enumerate() {
-                    if idx > 0 {
-                        builder.push(", ");
+                match &filter.value {
+                    Value::List(values) => {
+                        if values.is_empty() {
+                            return Err(DataError::InvalidQuery("IN requires values".to_string()));
+                        }
+                        for (idx, value) in values.iter().cloned().enumerate() {
+                            if idx > 0 {
+                                builder.push(", ");
+                            }
+                            Self::bind_value(builder, value);
+                        }
                     }
-                    Self::bind_value(builder, value);
+                    Value::StringArray(values) => {
+                        if values.is_empty() {
+                            return Err(DataError::InvalidQuery("IN requires values".to_string()));
+                        }
+                        for (idx, value) in values.iter().enumerate() {
+                            if idx > 0 {
+                                builder.push(", ");
+                            }
+                            Self::bind_value(builder, Value::String(value.clone()));
+                        }
+                    }
+                    _ => {
+                        return Err(DataError::InvalidQuery(
+                            "IN requires list or string array".to_string(),
+                        ));
+                    }
                 }
                 builder.push(")");
                 return Ok(());

@@ -390,13 +390,20 @@ where
                 return Ok(doc);
             }
             FilterOperator::In | FilterOperator::NotIn => {
-                let Value::List(values) = &filter.value else {
-                    return Err(DataError::InvalidQuery("IN requires list".to_string()));
+                let array: Vec<Bson> = match &filter.value {
+                    Value::List(values) => values
+                        .iter()
+                        .map(|v| Self::to_bson(v))
+                        .collect::<Result<_, _>>()?,
+                    Value::StringArray(values) => {
+                        values.iter().cloned().map(Bson::String).collect::<Vec<_>>()
+                    }
+                    _ => {
+                        return Err(DataError::InvalidQuery(
+                            "IN requires list or string array".to_string(),
+                        ))
+                    }
                 };
-                let array: Vec<Bson> = values
-                    .iter()
-                    .map(|v| Self::to_bson(v))
-                    .collect::<Result<_, _>>()?;
                 let mut inner = Document::new();
                 inner.insert(
                     if matches!(filter.operator, FilterOperator::In) {
@@ -602,6 +609,9 @@ where
             Value::DateTime(value) => Ok(Bson::DateTime(bson::DateTime::from_millis(
                 value.timestamp_millis(),
             ))),
+            Value::StringArray(values) => {
+                Ok(Bson::Array(values.iter().cloned().map(Bson::String).collect()))
+            }
             Value::List(values) => Ok(Bson::Array(
                 values.iter().map(Self::to_bson).collect::<Result<_, _>>()?,
             )),

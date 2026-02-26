@@ -43,6 +43,7 @@ impl<E: Entity> Repository<E> {
         let rows = self.provider.raw_query(sql, params).await?;
         rows.into_iter()
             .map(|row| {
+                log::info!("Raw query row: {:?}", row);
                 serde_json::from_value::<T>(row)
                     .map_err(|e| DataError::Provider(format!("raw_query decode failed: {}", e)))
             })
