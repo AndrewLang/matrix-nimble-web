@@ -430,6 +430,20 @@ fn join_translates_to_join_clause() {
     assert!(sql.contains("JOIN albums a ON t.album_id = a.id"));
 }
 
+#[test]
+fn distinct_select_expression_translates() {
+    let query = nimble_web::data::query_builder::QueryBuilder::<Photo>::new()
+        .distinct()
+        .select_as("to_char(p.day_date, 'YYYY')", "year")
+        .sort_desc("year")
+        .build();
+
+    let sql = PostgresProvider::<Photo>::build_select_sql(&query);
+    assert!(sql.contains("SELECT DISTINCT to_char(p.day_date, 'YYYY') AS year"));
+    assert!(sql.contains("FROM photos t"));
+    assert!(sql.contains("ORDER BY year DESC"));
+}
+
 #[tokio::test]
 async fn create_update_reject_mismatched_columns() {
     let pool = lazy_pool();

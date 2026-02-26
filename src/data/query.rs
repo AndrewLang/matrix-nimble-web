@@ -29,7 +29,9 @@ pub enum Value {
     Null,
     Bool(bool),
     Int(i64),
+    I16(i16),
     UInt(u64),
+    U16(u16),
     Float(f64),
     String(String),
     Bytes(Vec<u8>),
@@ -56,6 +58,12 @@ pub enum SortDirection {
 pub struct Sort {
     pub field: String,
     pub direction: SortDirection,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Select {
+    pub expression: String,
+    pub alias: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -98,6 +106,8 @@ pub struct GroupBy {
 pub struct Query<E: Entity> {
     entity_name: &'static str,
     entity_plural_name: String,
+    pub distinct: bool,
+    pub select: Vec<Select>,
     pub filters: Vec<Filter>,
     pub sorting: Vec<Sort>,
     pub joins: Vec<Join>,
@@ -111,6 +121,8 @@ impl<E: Entity> Query<E> {
         Self {
             entity_name: E::name(),
             entity_plural_name: E::plural_name(),
+            distinct: false,
+            select: Vec::new(),
             filters: Vec::new(),
             sorting: Vec::new(),
             joins: Vec::new(),

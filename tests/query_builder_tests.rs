@@ -48,6 +48,8 @@ impl Entity for Album {
 #[test]
 fn builder_starts_empty() {
     let query = QueryBuilder::<Photo>::new().build();
+    assert!(!query.distinct);
+    assert!(query.select.is_empty());
     assert!(query.filters.is_empty());
     assert!(query.sorting.is_empty());
     assert!(query.joins.is_empty());
@@ -124,4 +126,18 @@ fn build_produces_expected_query() {
     assert_eq!(query.sorting[1].field, "id");
     assert_eq!(query.sorting[1].direction, SortDirection::Desc);
     assert_eq!(query.paging, Some(PageRequest::new(3, 15)));
+}
+
+#[test]
+fn distinct_and_select_expression_supported() {
+    let query = QueryBuilder::<Photo>::new()
+        .distinct()
+        .select_as("to_char(p.day_date, 'YYYY')", "year")
+        .sort_desc("year")
+        .build();
+
+    assert!(query.distinct);
+    assert_eq!(query.select.len(), 1);
+    assert_eq!(query.select[0].expression, "to_char(p.day_date, 'YYYY')");
+    assert_eq!(query.select[0].alias.as_deref(), Some("year"));
 }

@@ -1,11 +1,14 @@
 use std::marker::PhantomData;
 
 use crate::data::paging::PageRequest;
+use crate::data::provider::DataResult;
 use crate::data::query::{
-    Aggregate, AggregateFunction, Filter, FilterOperator, GroupBy, Join, JoinOn, Query, Sort,
-    SortDirection, Value,
+    Aggregate, AggregateFunction, Filter, FilterOperator, GroupBy, Join, JoinOn, Query, Select,
+    Sort, SortDirection, Value,
 };
+use crate::data::repository::Repository;
 use crate::entity::entity::Entity;
+use serde::de::DeserializeOwned;
 
 pub struct QueryBuilder<E: Entity> {
     query: Query<E>,
@@ -25,6 +28,27 @@ impl<E: Entity> QueryBuilder<E> {
             field: field.to_string(),
             operator,
             value,
+        });
+        self
+    }
+
+    pub fn distinct(mut self) -> Self {
+        self.query.distinct = true;
+        self
+    }
+
+    pub fn select(mut self, expression: &str) -> Self {
+        self.query.select.push(Select {
+            expression: expression.to_string(),
+            alias: None,
+        });
+        self
+    }
+
+    pub fn select_as(mut self, expression: &str, alias: &str) -> Self {
+        self.query.select.push(Select {
+            expression: expression.to_string(),
+            alias: Some(alias.to_string()),
         });
         self
     }
@@ -100,6 +124,17 @@ impl<E: Entity> QueryBuilder<E> {
 
     pub fn build(self) -> Query<E> {
         self.query
+    }
+
+    pub async fn query<T>(
+        repository: &Repository<E>,
+        sql: &str,
+        params: &[Value],
+    ) -> DataResult<Vec<T>>
+    where
+        T: DeserializeOwned + Send + Sync + 'static,
+    {
+        repository.raw_query::<T>(sql, params).await
     }
 
     fn ensure_group_by(&mut self) -> &mut GroupBy {

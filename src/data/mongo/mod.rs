@@ -589,7 +589,9 @@ where
             Value::Null => Ok(Bson::Null),
             Value::Bool(value) => Ok(Bson::Boolean(*value)),
             Value::Int(value) => Ok(Bson::Int64(*value)),
+            Value::I16(value) => Ok(Bson::Int32(*value as i32)),
             Value::UInt(value) => Ok(Bson::Int64(*value as i64)),
+            Value::U16(value) => Ok(Bson::Int32(*value as i32)),
             Value::Float(value) => Ok(Bson::Double(*value)),
             Value::String(value) => Ok(Bson::String(value.clone())),
             Value::Bytes(value) => Ok(Bson::Binary(bson::Binary {

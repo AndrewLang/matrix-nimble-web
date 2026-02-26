@@ -1,7 +1,9 @@
 use async_trait::async_trait;
+use serde::de::DeserializeOwned;
+use serde_json::Value as JsonValue;
 
 use crate::data::paging::Page;
-use crate::data::provider::{DataProvider, DataResult};
+use crate::data::provider::{DataError, DataProvider, DataResult};
 use crate::data::query::Query;
 use crate::data::query::Value;
 use crate::entity::entity::Entity;
@@ -33,6 +35,19 @@ impl<E: Entity> Repository<E> {
     pub async fn insert(&self, entity: E) -> DataResult<E> {
         self.provider.create(entity).await
     }
+
+    pub async fn raw_query<T>(&self, sql: &str, params: &[Value]) -> DataResult<Vec<T>>
+    where
+        T: DeserializeOwned + Send + Sync + 'static,
+    {
+        let rows = self.provider.raw_query(sql, params).await?;
+        rows.into_iter()
+            .map(|row| {
+                serde_json::from_value::<T>(row)
+                    .map_err(|e| DataError::Provider(format!("raw_query decode failed: {}", e)))
+            })
+            .collect()
+    }
 }
 
 #[async_trait]
@@ -55,6 +70,10 @@ impl<E: Entity> DataProvider<E> for Repository<E> {
 
     async fn delete_by(&self, column: &str, value: Value) -> DataResult<bool> {
         self.provider.delete_by(column, value).await
+    }
+
+    async fn raw_query(&self, sql: &str, params: &[Value]) -> DataResult<Vec<JsonValue>> {
+        self.provider.raw_query(sql, params).await
     }
 
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>> {

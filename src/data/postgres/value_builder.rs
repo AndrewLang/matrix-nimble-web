@@ -34,7 +34,7 @@ impl PostgresValueBuilder {
 
     pub fn optional_i16(value: Option<i16>) -> Value {
         match value {
-            Some(v) => Value::Int(v as i64),
+            Some(v) => Value::I16(v),
             None => Value::Null,
         }
     }
@@ -86,7 +86,10 @@ impl PostgresValueBuilder {
     }
 
     pub fn optional_u16(value: Option<u16>) -> Value {
-        Self::optional_u64(value.map(|v| v as u64))
+        match value {
+            Some(v) => Value::U16(v),
+            None => Value::Null,
+        }
     }
 
     pub fn optional_u8(value: Option<u8>) -> Value {

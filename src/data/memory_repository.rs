@@ -4,6 +4,7 @@ use std::hash::Hash;
 use std::sync::{Arc, Mutex};
 
 use crate::data::paging::Page;
+use crate::data::provider::DataError;
 use crate::data::provider::{DataProvider, DataResult};
 use crate::data::query::Query;
 use crate::data::query::Value;
@@ -79,6 +80,16 @@ where
     async fn delete_by(&self, column: &str, value: Value) -> DataResult<bool> {
         let _ = (column, value);
         Ok(false)
+    }
+
+    async fn raw_query(
+        &self,
+        _sql: &str,
+        _params: &[Value],
+    ) -> DataResult<Vec<serde_json::Value>> {
+        Err(DataError::Provider(
+            "raw_query is not supported by MemoryRepository".to_string(),
+        ))
     }
 
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>> {

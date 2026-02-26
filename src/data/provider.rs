@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use serde_json::Value as JsonValue;
 
 use crate::data::paging::{Page, PageRequest};
 use crate::data::query::Query;
@@ -26,6 +27,8 @@ pub trait DataProvider<E: Entity>: Send + Sync {
     async fn delete(&self, id: &E::Id) -> DataResult<bool>;
 
     async fn delete_by(&self, column: &str, value: Value) -> DataResult<bool>;
+
+    async fn raw_query(&self, sql: &str, params: &[Value]) -> DataResult<Vec<JsonValue>>;
 
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>>;
 

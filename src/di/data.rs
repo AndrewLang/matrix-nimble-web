@@ -86,6 +86,14 @@ impl<E: Entity> DataProvider<E> for SharedProvider<E> {
         self.inner.delete_by(column, value).await
     }
 
+    async fn raw_query(
+        &self,
+        sql: &str,
+        params: &[crate::data::query::Value],
+    ) -> crate::data::provider::DataResult<Vec<serde_json::Value>> {
+        self.inner.raw_query(sql, params).await
+    }
+
     async fn query(
         &self,
         query: crate::data::query::Query<E>,

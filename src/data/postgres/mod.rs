@@ -1,7 +1,9 @@
 use async_trait::async_trait;
+use sqlx::postgres::PgArguments;
+use sqlx::query::Query as SqlxQuery;
 use sqlx::postgres::PgRow;
 use sqlx::types::Uuid as SqlxUuid;
-use sqlx::{PgPool, Postgres, QueryBuilder};
+use sqlx::{Column, PgPool, Postgres, QueryBuilder, Row};
 
 use crate::data::paging::{Page, PageRequest};
 use crate::data::provider::{DataError, DataProvider, DataResult};
@@ -32,6 +34,74 @@ pub struct PostgresProvider<E: Entity> {
 }
 
 impl<E: Entity> PostgresProvider<E> {
+    fn bind_raw_param<'q>(
+        mut query: SqlxQuery<'q, Postgres, PgArguments>,
+        value: Value,
+    ) -> DataResult<SqlxQuery<'q, Postgres, PgArguments>> {
+        query = match value {
+            Value::Null => query.bind(Option::<String>::None),
+            Value::Bool(v) => query.bind(v),
+            Value::Int(v) => query.bind(v),
+            Value::I16(v) => query.bind(v as i32),
+            Value::UInt(v) => query.bind(v as i64),
+            Value::U16(v) => query.bind(v as i32),
+            Value::Float(v) => query.bind(v),
+            Value::String(v) => query.bind(v),
+            Value::Bytes(v) => query.bind(v),
+            Value::Date(v) => query.bind(v),
+            Value::DateTime(v) => query.bind(v),
+            Value::Uuid(v) => {
+                let sql_uuid: SqlxUuid = v.into();
+                query.bind(sql_uuid)
+            }
+            Value::List(_) => {
+                return Err(DataError::InvalidQuery(
+                    "raw_query does not support list parameter binding".to_string(),
+                ));
+            }
+        };
+        Ok(query)
+    }
+
+    fn pg_value_to_json(row: &PgRow, column_name: &str) -> serde_json::Value {
+        if let Ok(value) = row.try_get::<Option<bool>, _>(column_name) {
+            return value
+                .map(serde_json::Value::Bool)
+                .unwrap_or(serde_json::Value::Null);
+        }
+        if let Ok(value) = row.try_get::<Option<i64>, _>(column_name) {
+            return value
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
+        }
+        if let Ok(value) = row.try_get::<Option<f64>, _>(column_name) {
+            return value
+                .map(serde_json::Value::from)
+                .unwrap_or(serde_json::Value::Null);
+        }
+        if let Ok(value) = row.try_get::<Option<String>, _>(column_name) {
+            return value
+                .map(serde_json::Value::String)
+                .unwrap_or(serde_json::Value::Null);
+        }
+        if let Ok(value) = row.try_get::<Option<SqlxUuid>, _>(column_name) {
+            return value
+                .map(|v| serde_json::Value::String(v.to_string()))
+                .unwrap_or(serde_json::Value::Null);
+        }
+        if let Ok(value) = row.try_get::<Option<chrono::NaiveDate>, _>(column_name) {
+            return value
+                .map(|v| serde_json::Value::String(v.to_string()))
+                .unwrap_or(serde_json::Value::Null);
+        }
+        if let Ok(value) = row.try_get::<Option<chrono::DateTime<chrono::Utc>>, _>(column_name) {
+            return value
+                .map(|v| serde_json::Value::String(v.to_rfc3339()))
+                .unwrap_or(serde_json::Value::Null);
+        }
+        serde_json::Value::Null
+    }
+
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -65,7 +135,25 @@ impl<E: Entity> PostgresProvider<E> {
 
     pub fn build_select_sql(query: &Query<E>) -> String {
         let mut sql = String::new();
-        sql.push_str("SELECT t.* FROM ");
+        sql.push_str("SELECT ");
+        if query.distinct {
+            sql.push_str("DISTINCT ");
+        }
+        if query.select.is_empty() {
+            sql.push_str("t.*");
+        } else {
+            for (idx, select) in query.select.iter().enumerate() {
+                if idx > 0 {
+                    sql.push_str(", ");
+                }
+                sql.push_str(&select.expression);
+                if let Some(alias) = &select.alias {
+                    sql.push_str(" AS ");
+                    sql.push_str(alias);
+                }
+            }
+        }
+        sql.push_str(" FROM ");
         sql.push_str(&E::plural_name());
         sql.push_str(" t");
         Self::append_joins_sql(&mut sql, &query.joins);
@@ -125,8 +213,14 @@ impl<E: Entity> PostgresProvider<E> {
             Value::Int(value) => {
                 builder.push_bind(value);
             }
+            Value::I16(value) => {
+                builder.push_bind(value as i32);
+            }
             Value::UInt(value) => {
                 builder.push_bind(value as i64);
+            }
+            Value::U16(value) => {
+                builder.push_bind(value as i32);
             }
             Value::Float(value) => {
                 builder.push_bind(value);
@@ -435,6 +529,29 @@ where
             .await
             .map_err(Self::map_sqlx_error)?;
         Ok(result.rows_affected() > 0)
+    }
+
+    async fn raw_query(&self, sql: &str, params: &[Value]) -> DataResult<Vec<serde_json::Value>> {
+        let mut query = sqlx::query(sql);
+        for value in params {
+            query = Self::bind_raw_param(query, value.clone())?;
+        }
+        let rows = query.fetch_all(&self.pool).await.map_err(Self::map_sqlx_error)?;
+
+        let mapped = rows
+            .into_iter()
+            .map(|row| {
+                let mut object = serde_json::Map::new();
+                for column in row.columns() {
+                    let name = column.name().to_string();
+                    let value = Self::pg_value_to_json(&row, &name);
+                    object.insert(name, value);
+                }
+                serde_json::Value::Object(object)
+            })
+            .collect::<Vec<_>>();
+
+        Ok(mapped)
     }
 
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>> {
