@@ -53,6 +53,10 @@ impl<E: Entity> DataProvider<E> for Repository<E> {
         self.provider.delete(id).await
     }
 
+    async fn delete_by(&self, column: &str, value: Value) -> DataResult<bool> {
+        self.provider.delete_by(column, value).await
+    }
+
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>> {
         self.provider.query(query).await
     }

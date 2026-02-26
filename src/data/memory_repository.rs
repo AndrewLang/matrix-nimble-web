@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use crate::data::paging::Page;
 use crate::data::provider::{DataProvider, DataResult};
 use crate::data::query::Query;
+use crate::data::query::Value;
 use crate::entity::entity::Entity;
 
 #[derive(Clone)]
@@ -75,6 +76,11 @@ where
         Ok(self.store.lock().expect("store lock").remove(id).is_some())
     }
 
+    async fn delete_by(&self, column: &str, value: Value) -> DataResult<bool> {
+        let _ = (column, value);
+        Ok(false)
+    }
+
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>> {
         let mut items = self.snapshot();
         let total = items.len() as u64;
@@ -101,11 +107,7 @@ where
         Ok(Page::new(page_items, total, page, page_size))
     }
 
-    async fn get_by(
-        &self,
-        _column: &str,
-        _value: crate::data::query::Value,
-    ) -> DataResult<Option<E>> {
+    async fn get_by(&self, _column: &str, _value: Value) -> DataResult<Option<E>> {
         // TODO: Implement filtering for MemoryRepository
         Ok(None)
     }

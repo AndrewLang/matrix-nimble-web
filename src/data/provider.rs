@@ -2,6 +2,7 @@ use async_trait::async_trait;
 
 use crate::data::paging::{Page, PageRequest};
 use crate::data::query::Query;
+use crate::data::query::Value;
 use crate::entity::entity::Entity;
 
 #[derive(Debug, Clone)]
@@ -24,10 +25,11 @@ pub trait DataProvider<E: Entity>: Send + Sync {
 
     async fn delete(&self, id: &E::Id) -> DataResult<bool>;
 
+    async fn delete_by(&self, column: &str, value: Value) -> DataResult<bool>;
+
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>>;
 
-    async fn get_by(&self, column: &str, value: crate::data::query::Value)
-        -> DataResult<Option<E>>;
+    async fn get_by(&self, column: &str, value: Value) -> DataResult<Option<E>>;
 
     async fn list(&self, page: PageRequest) -> DataResult<Page<E>> {
         let mut query = Query::<E>::new();

@@ -78,6 +78,14 @@ impl<E: Entity> DataProvider<E> for SharedProvider<E> {
         self.inner.delete(id).await
     }
 
+    async fn delete_by(
+        &self,
+        column: &str,
+        value: crate::data::query::Value,
+    ) -> crate::data::provider::DataResult<bool> {
+        self.inner.delete_by(column, value).await
+    }
+
     async fn query(
         &self,
         query: crate::data::query::Query<E>,

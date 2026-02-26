@@ -421,6 +421,22 @@ where
         Ok(result.rows_affected() > 0)
     }
 
+    async fn delete_by(&self, column: &str, value: Value) -> DataResult<bool> {
+        let mut builder = QueryBuilder::<Postgres>::new("DELETE FROM ");
+        builder.push(self.base_table());
+        builder.push(" WHERE ");
+        builder.push(column);
+        builder.push(" = ");
+        Self::bind_value(&mut builder, value);
+
+        let result = builder
+            .build()
+            .execute(&self.pool)
+            .await
+            .map_err(Self::map_sqlx_error)?;
+        Ok(result.rows_affected() > 0)
+    }
+
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>> {
         let total = self.count_total(&query).await?;
 
