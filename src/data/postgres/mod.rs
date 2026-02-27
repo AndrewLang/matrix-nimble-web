@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use sqlx::postgres::PgArguments;
-use sqlx::query::Query as SqlxQuery;
 use sqlx::postgres::PgRow;
+use sqlx::query::Query as SqlxQuery;
 use sqlx::types::Uuid as SqlxUuid;
 use sqlx::{Column, PgPool, Postgres, QueryBuilder, Row};
 
@@ -545,7 +545,10 @@ where
         for value in params {
             query = Self::bind_raw_param(query, value.clone())?;
         }
-        let rows = query.fetch_all(&self.pool).await.map_err(Self::map_sqlx_error)?;
+        let rows = query
+            .fetch_all(&self.pool)
+            .await
+            .map_err(Self::map_sqlx_error)?;
 
         let mapped = rows
             .into_iter()

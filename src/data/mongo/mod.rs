@@ -609,9 +609,9 @@ where
             Value::DateTime(value) => Ok(Bson::DateTime(bson::DateTime::from_millis(
                 value.timestamp_millis(),
             ))),
-            Value::StringArray(values) => {
-                Ok(Bson::Array(values.iter().cloned().map(Bson::String).collect()))
-            }
+            Value::StringArray(values) => Ok(Bson::Array(
+                values.iter().cloned().map(Bson::String).collect(),
+            )),
             Value::List(values) => Ok(Bson::Array(
                 values.iter().map(Self::to_bson).collect::<Result<_, _>>()?,
             )),

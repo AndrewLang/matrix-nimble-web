@@ -8,3 +8,7 @@ pub mod route;
 pub mod ws_endpoint;
 pub mod ws_endpoint_handler;
 pub mod ws_handler;
+
+pub use http_handler::HttpHandler;
+pub use registry::EndpointRegistry;
+pub use route::EndpointRoute;

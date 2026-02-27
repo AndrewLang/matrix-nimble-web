@@ -82,11 +82,7 @@ where
         Ok(false)
     }
 
-    async fn raw_query(
-        &self,
-        _sql: &str,
-        _params: &[Value],
-    ) -> DataResult<Vec<serde_json::Value>> {
+    async fn raw_query(&self, _sql: &str, _params: &[Value]) -> DataResult<Vec<serde_json::Value>> {
         Err(DataError::Provider(
             "raw_query is not supported by MemoryRepository".to_string(),
         ))

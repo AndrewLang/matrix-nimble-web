@@ -7,6 +7,7 @@ mod text;
 pub use error::HttpError;
 pub use file::FileResponse;
 pub use into_response::IntoResponse;
+pub use into_response::ResponseValue;
 pub use json::Json;
 
 pub type Result<T> = std::result::Result<T, HttpError>;
