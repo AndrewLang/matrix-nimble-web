@@ -1,41 +1,31 @@
 use async_trait::async_trait;
-use sqlx::postgres::PgArguments;
-use sqlx::postgres::PgRow;
+use sqlx::sqlite::SqliteArguments;
+use sqlx::sqlite::SqliteRow;
 use sqlx::query::Query as SqlxQuery;
-use sqlx::types::Uuid as SqlxUuid;
-use sqlx::{Column, PgPool, Postgres, QueryBuilder, Row};
+use sqlx::types::Uuid;
+use sqlx::{Column, QueryBuilder, Row, Sqlite, SqlitePool};
 
 use crate::data::paging::{Page, PageRequest};
+use crate::data::postgres::PostgresEntity;
 use crate::data::provider::{DataError, DataProvider, DataResult};
 use crate::data::query::{
     Filter, FilterOperator, GroupBy, Join, JoinOn, Query, SortDirection, Value,
 };
 use crate::entity::entity::Entity;
+#[path = "sqlite/migration.rs"]
 pub mod migration;
-#[cfg(feature = "postgres")]
-pub mod value_builder;
 
-pub trait PostgresEntity: Entity + Send + Sync + Unpin + 'static {
-    fn id_column() -> &'static str;
-    fn id_value(id: &Self::Id) -> Value;
-    fn insert_columns() -> &'static [&'static str];
-    fn insert_values(&self) -> Vec<Value>;
-    fn update_columns() -> &'static [&'static str];
-    fn update_values(&self) -> Vec<Value>;
-    fn table_columns() -> Vec<crate::data::schema::ColumnDef>;
-}
-
-pub struct PostgresProvider<E: Entity> {
-    pool: PgPool,
+pub struct SqliteProvider<E: Entity> {
+    pool: SqlitePool,
     schema: Option<String>,
     _marker: std::marker::PhantomData<E>,
 }
 
-impl<E: Entity> PostgresProvider<E> {
+impl<E: Entity> SqliteProvider<E> {
     fn bind_raw_param<'q>(
-        mut query: SqlxQuery<'q, Postgres, PgArguments>,
+        mut query: SqlxQuery<'q, Sqlite, SqliteArguments<'q>>,
         value: Value,
-    ) -> DataResult<SqlxQuery<'q, Postgres, PgArguments>> {
+    ) -> DataResult<SqlxQuery<'q, Sqlite, SqliteArguments<'q>>> {
         query = match value {
             Value::Null => query.bind(Option::<String>::None),
             Value::Bool(v) => query.bind(v),
@@ -48,9 +38,9 @@ impl<E: Entity> PostgresProvider<E> {
             Value::Bytes(v) => query.bind(v),
             Value::Date(v) => query.bind(v),
             Value::DateTime(v) => query.bind(v),
-            Value::StringArray(v) => query.bind(v),
+            Value::StringArray(v) => query.bind(serde_json::to_string(&v).unwrap_or_default()),
             Value::Uuid(v) => {
-                let sql_uuid: SqlxUuid = v.into();
+                let sql_uuid: Uuid = v.into();
                 query.bind(sql_uuid)
             }
             Value::List(_) => {
@@ -62,11 +52,17 @@ impl<E: Entity> PostgresProvider<E> {
         Ok(query)
     }
 
-    fn pg_value_to_json(row: &PgRow, column_name: &str) -> serde_json::Value {
-        if let Ok(value) = row.try_get::<Option<bool>, _>(column_name) {
-            return value
-                .map(serde_json::Value::Bool)
-                .unwrap_or(serde_json::Value::Null);
+    fn sqlite_value_to_json(row: &SqliteRow, column_name: &str) -> serde_json::Value {
+        let bool_column = matches!(
+            column_name,
+            "metadata_extracted" | "is_raw" | "is_default" | "readonly" | "is_public" | "approved"
+        );
+        if bool_column {
+            if let Ok(value) = row.try_get::<Option<bool>, _>(column_name) {
+                return value
+                    .map(serde_json::Value::Bool)
+                    .unwrap_or(serde_json::Value::Null);
+            }
         }
         if let Ok(value) = row.try_get::<Option<i64>, _>(column_name) {
             return value
@@ -79,11 +75,15 @@ impl<E: Entity> PostgresProvider<E> {
                 .unwrap_or(serde_json::Value::Null);
         }
         if let Ok(value) = row.try_get::<Option<String>, _>(column_name) {
-            return value
-                .map(serde_json::Value::String)
-                .unwrap_or(serde_json::Value::Null);
+            return value.map_or(serde_json::Value::Null, |value| {
+                if column_name.eq_ignore_ascii_case("photosPayload") {
+                    serde_json::from_str(&value).unwrap_or(serde_json::Value::String(value))
+                } else {
+                    serde_json::Value::String(value)
+                }
+            });
         }
-        if let Ok(value) = row.try_get::<Option<SqlxUuid>, _>(column_name) {
+        if let Ok(value) = row.try_get::<Option<Uuid>, _>(column_name) {
             return value
                 .map(|v| serde_json::Value::String(v.to_string()))
                 .unwrap_or(serde_json::Value::Null);
@@ -101,7 +101,7 @@ impl<E: Entity> PostgresProvider<E> {
         serde_json::Value::Null
     }
 
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: SqlitePool) -> Self {
         Self {
             pool,
             schema: None,
@@ -109,7 +109,7 @@ impl<E: Entity> PostgresProvider<E> {
         }
     }
 
-    pub fn with_schema(pool: PgPool, schema: &str) -> Self {
+    pub fn with_schema(pool: SqlitePool, schema: &str) -> Self {
         Self {
             pool,
             schema: Some(schema.to_string()),
@@ -205,7 +205,7 @@ impl<E: Entity> PostgresProvider<E> {
         }
     }
 
-    fn bind_value(builder: &mut QueryBuilder<Postgres>, value: Value) {
+    fn bind_value(builder: &mut QueryBuilder<Sqlite>, value: Value) {
         match value {
             Value::Null => {
                 builder.push("NULL");
@@ -241,10 +241,10 @@ impl<E: Entity> PostgresProvider<E> {
                 builder.push_bind(value);
             }
             Value::StringArray(value) => {
-                builder.push_bind(value);
+                builder.push_bind(serde_json::to_string(&value).unwrap_or_default());
             }
             Value::Uuid(value) => {
-                let sql_uuid: SqlxUuid = value.into();
+                let sql_uuid: Uuid = value.into();
                 builder.push_bind(sql_uuid);
             }
             Value::List(_) => {
@@ -256,7 +256,7 @@ impl<E: Entity> PostgresProvider<E> {
     fn map_sqlx_error(err: sqlx::Error) -> DataError {
         if let sqlx::Error::Database(db_err) = &err {
             if let Some(code) = db_err.code() {
-                if code == "23505" {
+                if code == "2067" || code == "1555" {
                     return DataError::Conflict(db_err.message().to_string());
                 }
             }
@@ -410,9 +410,9 @@ impl<E: Entity> PostgresProvider<E> {
 }
 
 #[async_trait]
-impl<E> DataProvider<E> for PostgresProvider<E>
+impl<E> DataProvider<E> for SqliteProvider<E>
 where
-    E: PostgresEntity + for<'r> sqlx::FromRow<'r, PgRow>,
+    E: PostgresEntity + for<'r> sqlx::FromRow<'r, SqliteRow>,
 {
     async fn create(&self, entity: E) -> DataResult<E> {
         let columns = E::insert_columns();
@@ -423,7 +423,7 @@ where
             ));
         }
 
-        let mut builder = QueryBuilder::<Postgres>::new("INSERT INTO ");
+        let mut builder = QueryBuilder::<Sqlite>::new("INSERT INTO ");
         builder.push(self.base_table());
         builder.push(" (");
         for (idx, col) in columns.iter().enumerate() {
@@ -450,7 +450,7 @@ where
     }
 
     async fn get(&self, id: &E::Id) -> DataResult<Option<E>> {
-        let mut builder = QueryBuilder::<Postgres>::new("SELECT t.* FROM ");
+        let mut builder = QueryBuilder::<Sqlite>::new("SELECT t.* FROM ");
         builder.push(self.base_table());
         builder.push(" t WHERE t.");
         builder.push(E::id_column());
@@ -463,9 +463,9 @@ where
             .await;
 
         match &row {
-            Ok(Some(_)) => log::trace!("PostgresProvider::get: found row"),
-            Ok(None) => log::trace!("PostgresProvider::get: row not found"),
-            Err(e) => log::error!("PostgresProvider::get: error: {}", e),
+            Ok(Some(_)) => log::trace!("SqliteProvider::get: found row"),
+            Ok(None) => log::trace!("SqliteProvider::get: row not found"),
+            Err(e) => log::error!("SqliteProvider::get: error: {}", e),
         }
 
         let row = row.map_err(Self::map_sqlx_error)?;
@@ -481,7 +481,7 @@ where
             ));
         }
 
-        let mut builder = QueryBuilder::<Postgres>::new("UPDATE ");
+        let mut builder = QueryBuilder::<Sqlite>::new("UPDATE ");
         builder.push(self.base_table());
         builder.push(" SET ");
         for (idx, (col, value)) in columns.iter().zip(values.into_iter()).enumerate() {
@@ -507,7 +507,7 @@ where
     }
 
     async fn delete(&self, id: &E::Id) -> DataResult<bool> {
-        let mut builder = QueryBuilder::<Postgres>::new("DELETE FROM ");
+        let mut builder = QueryBuilder::<Sqlite>::new("DELETE FROM ");
         builder.push(self.base_table());
         builder.push(" WHERE ");
         builder.push(E::id_column());
@@ -523,7 +523,7 @@ where
     }
 
     async fn delete_by(&self, column: &str, value: Value) -> DataResult<bool> {
-        let mut builder = QueryBuilder::<Postgres>::new("DELETE FROM ");
+        let mut builder = QueryBuilder::<Sqlite>::new("DELETE FROM ");
         builder.push(self.base_table());
         builder.push(" WHERE ");
         builder.push(column);
@@ -554,7 +554,7 @@ where
                 let mut object = serde_json::Map::new();
                 for column in row.columns() {
                     let name = column.name().to_string();
-                    let value = Self::pg_value_to_json(&row, &name);
+                    let value = Self::sqlite_value_to_json(&row, &name);
                     object.insert(name, value);
                 }
                 serde_json::Value::Object(object)
@@ -567,7 +567,7 @@ where
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>> {
         let total = self.count_total(&query).await?;
 
-        let mut builder = QueryBuilder::<Postgres>::new("");
+        let mut builder = QueryBuilder::<Sqlite>::new("");
         self.append_select_prefix(&mut builder, &query);
         self.append_from_and_joins(&mut builder, &query);
         self.append_filters(&mut builder, &query)?;
@@ -590,7 +590,7 @@ where
     }
 
     async fn get_by(&self, column: &str, value: Value) -> DataResult<Option<E>> {
-        let mut builder = QueryBuilder::<Postgres>::new("SELECT t.* FROM ");
+        let mut builder = QueryBuilder::<Sqlite>::new("SELECT t.* FROM ");
         builder.push(self.base_table());
         builder.push(" t WHERE t.");
         builder.push(column);
@@ -606,7 +606,7 @@ where
     }
 
     async fn all(&self, query: Query<E>) -> DataResult<Vec<E>> {
-        let mut builder = QueryBuilder::<Postgres>::new("");
+        let mut builder = QueryBuilder::<Sqlite>::new("");
         self.append_select_prefix(&mut builder, &query);
         self.append_from_and_joins(&mut builder, &query);
         self.append_filters(&mut builder, &query)?;
@@ -622,8 +622,8 @@ where
     }
 }
 
-impl<E: Entity> PostgresProvider<E> {
-    fn append_select_prefix(&self, builder: &mut QueryBuilder<Postgres>, query: &Query<E>) {
+impl<E: Entity> SqliteProvider<E> {
+    fn append_select_prefix(&self, builder: &mut QueryBuilder<Sqlite>, query: &Query<E>) {
         builder.push("SELECT ");
         if let Some(column) = &query.distinct_by {
             builder.push("DISTINCT ON (");
@@ -635,7 +635,7 @@ impl<E: Entity> PostgresProvider<E> {
         builder.push("t.* FROM ");
     }
 
-    fn append_from_and_joins(&self, builder: &mut QueryBuilder<Postgres>, query: &Query<E>) {
+    fn append_from_and_joins(&self, builder: &mut QueryBuilder<Sqlite>, query: &Query<E>) {
         builder.push(self.base_table());
         builder.push(" t");
         for join in &query.joins {
@@ -643,7 +643,7 @@ impl<E: Entity> PostgresProvider<E> {
         }
     }
 
-    fn append_join(&self, builder: &mut QueryBuilder<Postgres>, join: &Join) {
+    fn append_join(&self, builder: &mut QueryBuilder<Sqlite>, join: &Join) {
         builder.push(" JOIN ");
         builder.push(self.join_table(&join.entity_name));
         if let Some(alias) = &join.alias {
@@ -659,7 +659,7 @@ impl<E: Entity> PostgresProvider<E> {
         }
     }
 
-    fn append_join_on(&self, builder: &mut QueryBuilder<Postgres>, on: &JoinOn) {
+    fn append_join_on(&self, builder: &mut QueryBuilder<Sqlite>, on: &JoinOn) {
         builder.push(&on.left);
         builder.push(" ");
         builder.push(Self::operator_to_sql(&on.operator));
@@ -669,7 +669,7 @@ impl<E: Entity> PostgresProvider<E> {
 
     fn append_filters(
         &self,
-        builder: &mut QueryBuilder<Postgres>,
+        builder: &mut QueryBuilder<Sqlite>,
         query: &Query<E>,
     ) -> DataResult<()> {
         if query.filters.is_empty() {
@@ -688,7 +688,7 @@ impl<E: Entity> PostgresProvider<E> {
 
     fn append_filter(
         &self,
-        builder: &mut QueryBuilder<Postgres>,
+        builder: &mut QueryBuilder<Sqlite>,
         filter: &Filter,
     ) -> DataResult<()> {
         let field = &filter.field;
@@ -820,7 +820,7 @@ impl<E: Entity> PostgresProvider<E> {
         }
     }
 
-    fn append_group_by(&self, builder: &mut QueryBuilder<Postgres>, group_by: Option<&GroupBy>) {
+    fn append_group_by(&self, builder: &mut QueryBuilder<Sqlite>, group_by: Option<&GroupBy>) {
         let Some(group_by) = group_by else {
             return;
         };
@@ -836,7 +836,7 @@ impl<E: Entity> PostgresProvider<E> {
         }
     }
 
-    fn append_sorting(&self, builder: &mut QueryBuilder<Postgres>, query: &Query<E>) {
+    fn append_sorting(&self, builder: &mut QueryBuilder<Sqlite>, query: &Query<E>) {
         if query.sorting.is_empty() {
             return;
         }
@@ -853,7 +853,7 @@ impl<E: Entity> PostgresProvider<E> {
         }
     }
 
-    fn append_paging(&self, builder: &mut QueryBuilder<Postgres>, query: &Query<E>) {
+    fn append_paging(&self, builder: &mut QueryBuilder<Sqlite>, query: &Query<E>) {
         let Some(paging) = query.paging else {
             return;
         };
@@ -868,9 +868,9 @@ impl<E: Entity> PostgresProvider<E> {
 
     async fn count_total(&self, query: &Query<E>) -> DataResult<u64> {
         let mut builder = if query.group_by.is_some() {
-            QueryBuilder::<Postgres>::new("SELECT COUNT(*) FROM (SELECT 1 FROM ")
+            QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM (SELECT 1 FROM ")
         } else {
-            QueryBuilder::<Postgres>::new("SELECT COUNT(*) FROM ")
+            QueryBuilder::<Sqlite>::new("SELECT COUNT(*) FROM ")
         };
 
         self.append_from_and_joins(&mut builder, query);
@@ -889,3 +889,4 @@ impl<E: Entity> PostgresProvider<E> {
         Ok(total.max(0) as u64)
     }
 }
+

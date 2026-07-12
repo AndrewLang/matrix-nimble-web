@@ -38,8 +38,13 @@ use crate::redis::RedisModule;
 #[cfg(feature = "postgres")]
 use {
     crate::data::postgres::migration::PostgresMigrator, sqlx::postgres::PgPoolOptions,
-    std::time::Duration,
 };
+#[cfg(feature = "sqlite")]
+use {
+    crate::data::sqlite::migration::SqliteMigrator, sqlx::sqlite::SqlitePoolOptions,
+};
+#[cfg(any(feature = "postgres", feature = "sqlite"))]
+use std::time::Duration;
 
 pub struct AppBuilder {
     pipeline: Pipeline,
@@ -344,6 +349,36 @@ impl AppBuilder {
             PostgresMigrator::new(pool.as_ref().clone())
         });
 
+        self
+    }
+}
+
+#[cfg(feature = "sqlite")]
+impl AppBuilder {
+    pub fn use_sqlite(&mut self) -> &mut Self {
+        self.services.register_singleton(|provider| {
+            let config = provider
+                .resolve::<Configuration>()
+                .expect("configuration not registered");
+            let sqlite = config.sqlite_config();
+            SqlitePoolOptions::new()
+                .max_connections(sqlite.pool_size)
+                .acquire_timeout(Duration::from_secs(sqlite.timeout))
+                .connect_lazy(&sqlite.url)
+                .expect("invalid SQLite configuration")
+        });
+        self.services.register_singleton(|provider| {
+            let config = provider
+                .resolve::<Configuration>()
+                .expect("SQLite configuration not registered");
+            config.sqlite_config()
+        });
+        self.services.register_singleton(|provider| {
+            let pool = provider
+                .resolve::<sqlx::SqlitePool>()
+                .expect("SQLite pool not registered");
+            SqliteMigrator::new(pool.as_ref().clone())
+        });
         self
     }
 }

@@ -26,9 +26,13 @@ pub trait DataProvider<E: Entity>: Send + Sync {
 
     async fn delete(&self, id: &E::Id) -> DataResult<bool>;
 
-    async fn delete_by(&self, column: &str, value: Value) -> DataResult<bool>;
+    async fn delete_by(&self, _column: &str, _value: Value) -> DataResult<bool> {
+        Err(DataError::InvalidQuery("delete_by is not supported by this provider".into()))
+    }
 
-    async fn raw_query(&self, sql: &str, params: &[Value]) -> DataResult<Vec<JsonValue>>;
+    async fn raw_query(&self, _sql: &str, _params: &[Value]) -> DataResult<Vec<JsonValue>> {
+        Err(DataError::InvalidQuery("raw queries are not supported by this provider".into()))
+    }
 
     async fn query(&self, query: Query<E>) -> DataResult<Page<E>>;
 
@@ -40,5 +44,7 @@ pub trait DataProvider<E: Entity>: Send + Sync {
         self.query(query).await
     }
 
-    async fn all(&self, query: Query<E>) -> DataResult<Vec<E>>;
+    async fn all(&self, query: Query<E>) -> DataResult<Vec<E>> {
+        Ok(self.query(query).await?.items)
+    }
 }

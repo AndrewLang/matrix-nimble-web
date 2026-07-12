@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 #[cfg(feature = "postgres")]
 use crate::config::postgres::PostgresConfig;
+#[cfg(feature = "sqlite")]
+use crate::config::sqlite::SqliteConfig;
 #[cfg(feature = "redis")]
 use crate::config::redis::RedisConfig;
 
@@ -45,5 +47,10 @@ impl Configuration {
     #[cfg(feature = "postgres")]
     pub fn postgres_config(&self) -> PostgresConfig {
         PostgresConfig::from_configuration(self)
+    }
+
+    #[cfg(feature = "sqlite")]
+    pub fn sqlite_config(&self) -> SqliteConfig {
+        SqliteConfig::from_configuration(self)
     }
 }

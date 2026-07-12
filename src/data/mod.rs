@@ -4,6 +4,8 @@ pub mod mongo;
 pub mod paging;
 #[cfg(feature = "postgres")]
 pub mod postgres;
+#[cfg(feature = "sqlite")]
+pub mod sqlite;
 pub mod provider;
 pub mod query;
 pub mod query_builder;

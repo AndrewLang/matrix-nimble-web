@@ -25,6 +25,8 @@ pub use crate::data::paging::*;
 pub use crate::data::postgres::migration::*;
 #[cfg(feature = "postgres")]
 pub use crate::data::postgres::*;
+#[cfg(feature = "sqlite")]
+pub use crate::data::sqlite::*;
 pub use crate::data::provider::*;
 pub use crate::data::query::*;
 pub use crate::data::query_builder::*;

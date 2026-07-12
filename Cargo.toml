@@ -44,7 +44,7 @@ optional = true
 [dependencies.sqlx]
 version = "0.8"
 default-features = false
-features = ["runtime-tokio", "postgres", "chrono", "uuid"]
+features = ["runtime-tokio", "postgres", "sqlite", "chrono", "uuid"]
 optional = true
 
 [dependencies.mongodb]
@@ -68,6 +68,7 @@ optional = true
 redis = ["dep:redis", "dep:deadpool-redis", "dep:deadpool"]
 mongodb = ["dep:mongodb"]
 postgres = ["dep:sqlx"]
+sqlite = ["dep:sqlx"]
 cli = ["dep:clap", "dep:dialoguer", "dep:fs_extra"]
 testbot = ["reqwest"]
 

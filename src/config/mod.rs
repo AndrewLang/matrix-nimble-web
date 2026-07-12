@@ -6,6 +6,8 @@ pub mod source;
 
 #[cfg(feature = "postgres")]
 pub mod postgres;
+#[cfg(feature = "sqlite")]
+pub mod sqlite;
 #[cfg(feature = "redis")]
 pub mod redis;
 

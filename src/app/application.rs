@@ -25,6 +25,15 @@ use {
     crate::data::postgres::migration::PostgresMigrator, crate::data::postgres::PostgresEntity,
     crate::data::provider::DataError,
 };
+#[cfg(all(feature = "sqlite", not(feature = "postgres")))]
+use crate::data::provider::DataError;
+#[cfg(feature = "sqlite")]
+use {
+    crate::data::sqlite::migration::SqliteMigrator,
+    sqlx::sqlite::SqliteRow,
+};
+#[cfg(all(feature = "sqlite", not(feature = "postgres")))]
+use crate::data::postgres::PostgresEntity;
 
 pub struct Application {
     pipeline: Pipeline,
@@ -177,6 +186,21 @@ impl Application {
         {
             let _ = tokio::signal::ctrl_c().await;
         }
+    }
+}
+
+#[cfg(feature = "sqlite")]
+impl Application {
+    pub async fn migrate_sqlite_entity<E>(&self) -> Result<(), DataError>
+    where
+        E: PostgresEntity + for<'r> sqlx::FromRow<'r, SqliteRow>,
+    {
+        let migrator = self.services.resolve::<SqliteMigrator>().ok_or_else(|| {
+            DataError::Provider(
+                "SqliteMigrator not registered. Did you call builder.use_sqlite()?".to_string(),
+            )
+        })?;
+        migrator.migrate::<E>().await
     }
 }
 
